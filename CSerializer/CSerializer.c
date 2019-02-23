@@ -46,6 +46,7 @@ returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion sta
 status serialize_data(Buffer *buffer, void *data, size_t size)
 {
 	if (!buffer) return FAILURE;
+	if (!data) return FAILURE;
 	if (buffer->mode == READ) return ILLEGAL_WRITE;
 	status s;
 	if ((s = alloc_buffer(buffer, size) != SUCCESS)) return s;
@@ -210,9 +211,13 @@ returns status { FAILURE, SUCCESS } indicating the completion status of the func
  */
 status set_mode_write(Buffer* buffer, type type)
 {
-	void *tmp = realloc(buffer->data, buffer->size + DEFAULT_BUFFER_SIZE);
-	if (!tmp) return FAILURE;
-	buffer->data = tmp;
+	if(type == DYNAMIC) 
+	{
+		void *tmp = realloc(buffer->data, buffer->size + DEFAULT_BUFFER_SIZE);
+		if (!tmp) return FAILURE;
+		buffer->data = tmp;
+
+	}
 	buffer->mode = WRITE;
 	buffer->type = type;
 	buffer->next_pointer = buffer->size;
