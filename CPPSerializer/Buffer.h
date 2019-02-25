@@ -446,9 +446,9 @@ public:
 template <class T>
 void Buffer::write(const T* data, const std::size_t &length, std::false_type)
 {
-	static_assert(std::is_arithmetic<T>::value, "trying to write non primirive non serializable types.");
+	static_assert(std::is_base_of<Serializable, T>::value, "trying to write non primirive non serializable types.");
 	if (!data) throw BufferNullPointerException("trying to write nullptr");
-	for (int i = 0; i < length; ++i)
+	for (size_t i = 0; i < length; ++i)
 	{
 		this->write(data[i]);
 	}
@@ -521,25 +521,25 @@ void Buffer::write(std::queue<T>& data)
 template <class T>
 void Buffer::read(T* dest, const std::size_t &length, std::false_type)
 {
-	if (!data) throw BufferNullPointerException("trying to read data into null");
+	if (!dest) throw BufferNullPointerException("trying to read data into null");
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
 	for (std::size_t i = 0; i < length; ++i)
 	{
 		T tmp;
 		tmp.deserialize(*this);
-		data[i] = tmp;
+		dest[i] = tmp;
 	}
 }
 
 template <class T>
-void Buffer::read(T** data, std::size_t length)
+void Buffer::read(T** dest, std::size_t length)
 {
-	if (!data) throw BufferNullPointerException("trying to read data into null");
+	if (!dest) throw BufferNullPointerException("trying to read data into null");
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
 	for (std::size_t i = 0; i < length; ++i)
 	{
-		data[i] = new T;
-		this->read(data[i]);
+		dest[i] = new T;
+		this->read(dest[i]);
 	}
 }
 
@@ -568,7 +568,7 @@ void Buffer::read(std::forward_list<T>& dest, size_t length)
 		this->read(v_tmp);
 		tmp.push(v_tmp);
 	}
-	for (int i = 0; i < length; ++i)
+	for (size_t i = 0; i < length; ++i)
 	{
 		dest.push_front(tmp.top());
 		tmp.pop();

@@ -39,6 +39,7 @@ Game::~Game()
 
 Game& Game::operator=(const Game& other)
 {
+	if (this->player == nullptr) this->player = new Player;
 	*this->player = *other.player;
 	for (int i = 0; i < this->num_enemies; ++i)
 	{
@@ -48,11 +49,12 @@ Game& Game::operator=(const Game& other)
 	this->enemies = new Player*[other.num_enemies];
 	for (int i = 0; i < other.num_enemies; ++i)
 	{
+		this->enemies[i] = new Player;
 		*this->enemies[i] = *other.enemies[i];
 	}
 	this->num_enemies = other.num_enemies;
 	this->height = other.height;
-	this->width = other.height;
+	this->width = other.width;
 
 	return *this;
 }

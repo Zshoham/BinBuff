@@ -167,7 +167,10 @@ bool test_generic_array()
 	Buffer dbuf(DYNAMIC);
 	Buffer sbuf(STATIC, 1024);
 
-	
+	dbuf.write(players, 2);
+	dbuf.write(games, 2);
+	sbuf.write(players, 2);
+	sbuf.write(games, 2);
 
 	Player dnp[2], snp[2];
 	Game dng[2], sng[2];
@@ -175,13 +178,18 @@ bool test_generic_array()
 	dbuf.set_mode_read();
 	sbuf.set_mode_read();
 
-	
+	dbuf.read(dnp, 2);
+	dbuf.read(dng, 2);
+	sbuf.read(snp, 2);
+	sbuf.read(sng, 2);
+
 	for (int i = 0; i < 2; ++i)
 	{
-		// res = res && players[i] == dnp[i] && players[i] == snp[i];
-		// res = res && games[i] == dng[i] && games[i] == sng[i];
+		res = res && players[i] == dnp[i];
+		res = res && players[i] == snp[i];
+		res = res && games[i] == dng[i];
+		res = res && games[i] == sng[i];
 	}
-
 
 	return res;
 }
@@ -320,7 +328,7 @@ int main(int argc, char* argv[])
 	if (!test_primitive()) std::cout << "failed primitive serialization test." << std::endl;
 	else if (!test_primitive_array()) std::cout << "failed primitive array serialization test." << std::endl;
 	else if (!test_generic()) std::cout << "failed generic serialization test." << std::endl;
-	//else if (!test_generic_array()) std::cout << "failed generic array serialization test." << std::endl;
+	else if (!test_generic_array()) std::cout << "failed generic array serialization test." << std::endl;
 	else if (!test_containers()) std::cout << "failed container serialization test." << std::endl;
 	else std::cout << "all tests passed." << std::endl;
 
