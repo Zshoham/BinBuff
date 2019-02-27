@@ -94,7 +94,7 @@ bool Game::operator==(const Game& other) const
 	return areEqual && *this->player == other.player;
 }
 
-void Game::serialize(Buffer& buffer) const
+void Game::serialize(ser::Buffer& buffer) const
 {
 	buffer << this->width << this->height;
 	buffer << *this->player;
@@ -102,7 +102,7 @@ void Game::serialize(Buffer& buffer) const
 	buffer.write(this->enemies, this->num_enemies);
 }
 
-void Game::deserialize(Buffer& buffer)
+void Game::deserialize(ser::Buffer& buffer)
 {
 	buffer >> this->width >> this->height;
 	this->player = new Player;

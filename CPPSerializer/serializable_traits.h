@@ -5,7 +5,10 @@
 #include <memory>
 #include "Serializable.h"
 
+namespace Serializer
+{
 
+//namespace for all implementation structures, meant to be used internally only.
 namespace impl
 {
 
@@ -322,6 +325,8 @@ namespace impl
 	
 }
 
+template<class T>
+struct remove_inner_const { typedef typename impl::remove_inner_const<T>::type type; };
 
 template<class T>
 struct default_construct
@@ -353,4 +358,5 @@ struct is_readable_associative : std::bool_constant<impl::is_readable_ass<C>::va
 template<typename C>
 struct is_readable_container : std::bool_constant<impl::is_readable_ass<C>::value || impl::is_readable_seq<C>::value> {};
 
+}
 #endif

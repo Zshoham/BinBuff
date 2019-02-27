@@ -4,6 +4,9 @@
 #include <exception>
 #include <string>
 
+namespace Serializer
+{
+	
 class CPPSerializerException : std::exception
 {
 	const char *error_msg;
@@ -51,5 +54,6 @@ public:
 	BufferNullPointerException(const char *error_msg) noexcept : CPPSerializerException(error_msg) {}
 };
 
+}
 
 #endif

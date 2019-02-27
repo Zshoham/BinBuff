@@ -2,7 +2,8 @@
 
 #include "CPPSerializer.h"
 
-class Player : public Serializable
+
+class Player : public ser::Serializable
 {
 	bool isAlive;
 	float health;
@@ -21,7 +22,7 @@ public:
 	bool operator<(const Player& other) const { return this->player_num < other.player_num; }
 
 
-	void serialize(Buffer& buffer) const override { buffer << this->player_num << this->isAlive << this->health << this->strength; }
-	void deserialize(Buffer& buffer) override { buffer >> this->player_num >> this->isAlive >> this->health >> this->strength; }
+	void serialize(ser::Buffer& buffer) const override { buffer << this->player_num << this->isAlive << this->health << this->strength; }
+	void deserialize(ser::Buffer& buffer) override { buffer >> this->player_num >> this->isAlive >> this->health >> this->strength; }
 };
 

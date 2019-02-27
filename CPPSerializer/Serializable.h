@@ -1,8 +1,9 @@
 #ifndef SERIALIZABLE_H
 #define SERIALIZABLE_H
 
-#include <type_traits>
-
+namespace Serializer
+{
+	
 class Buffer;
 
 class Serializable
@@ -15,4 +16,6 @@ public:
 	virtual void serialize(Buffer& buffer) const = 0;
 	virtual void deserialize(Buffer& buffer) = 0;
 };
+
+}
 #endif

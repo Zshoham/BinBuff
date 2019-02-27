@@ -5,7 +5,7 @@
 #include "CPPSerializer.h"
 #include "Player.h"
 
-class Game : public Serializable
+class Game : public ser::Serializable
 {
 	int width, height;
 	Player *player;
@@ -27,8 +27,8 @@ public:
 
 	bool operator<(const Game& other) const { return this->num_enemies < other.num_enemies; }
 
-	void serialize(Buffer& buffer) const override;
-	void deserialize(Buffer& buffer) override;
+	void serialize(ser::Buffer& buffer) const override;
+	void deserialize(ser::Buffer& buffer) override;
 };
 
 #endif

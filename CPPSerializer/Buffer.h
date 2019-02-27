@@ -14,12 +14,16 @@
 #include <forward_list>
 #define DEFAULT_BUFFER_SIZE 32
 
-
-enum type {DYNAMIC, STATIC};
-enum mode {READ, WRITE};
+namespace Serializer
+{
 
 class Buffer
 {
+public:
+	enum type { DYNAMIC, STATIC };
+	enum mode { READ, WRITE };
+
+private:
 	void *data;
 	std::size_t size;
 	std::size_t next_pointer;
@@ -86,7 +90,7 @@ class Buffer
 	void read_container(T &dest, size_t length, std::true_type)
 	{
 		static_assert(is_readable_container<T>::value, "trying to read into unreadable container.");
-		typedef typename impl::remove_inner_const<typename T::value_type>::type value_type;
+		typedef typename remove_inner_const<typename T::value_type>::type value_type;
 		for (size_t i = 0; i < length; ++i)
 		{
 			value_type tmp = default_construct<value_type>::get_instance();
@@ -98,7 +102,7 @@ class Buffer
 	template<class T>
 	void read_container(T &dest, size_t length, std::false_type)
 	{
-		typedef typename T::value_type value_type;
+		typedef typename remove_inner_const<typename T::value_type>::type value_type;
 		for (size_t i = 0; i < length; ++i)
 		{
 			value_type tmp = default_construct<value_type>::get_instance();
@@ -362,11 +366,11 @@ public:
 	/**
 	 * \brief reads an array from the buffer into the given array of pointers 'dest'.
 	 * \tparam T a deserializable data type.
-	 * \param data pointer to the beginning of the array of pointers.
+	 * \param dest pointer to the beginning of the array of pointers.
 	 * \param length the length of the array that should be read.
 	 */
 	template<class T>
-	void read(T **data, std::size_t length);
+	void read(T **dest, std::size_t length);
 
 
 	/**
@@ -561,17 +565,17 @@ template <class T>
 void Buffer::read(std::forward_list<T>& dest, size_t length)
 {
 	static_assert(is_deserializable<T>::value, "trying to write non primirive non serializable type into buffer.");
-	std::stack<T> tmp;
+	std::stack<T> s_tmp;
 	for (size_t i = 0; i < length; ++i)
 	{
-		T v_tmp;
+		T v_tmp = default_construct<T>::get_instance();
 		this->read(v_tmp);
-		tmp.push(v_tmp);
+		s_tmp.push(v_tmp);
 	}
 	for (size_t i = 0; i < length; ++i)
 	{
-		dest.push_front(tmp.top());
-		tmp.pop();
+		dest.push_front(s_tmp.top());
+		s_tmp.pop();
 	}
 }
 
@@ -581,7 +585,7 @@ void Buffer::read(std::stack<T>& dest, size_t length)
 	static_assert(is_deserializable<T>::value, "trying to write non primirive non serializable type into buffer.");
 	for (size_t i = 0; i < length; ++i)
 	{
-		T tmp;
+		T tmp = default_construct<T>::get_instance();
 		this->read(tmp);
 		dest.push(tmp);
 	}
@@ -593,7 +597,7 @@ void Buffer::read(std::queue<T>& dest, size_t length)
 	static_assert(is_deserializable<T>::value, "trying to write non primirive non serializable type into buffer.");
 	for (size_t i = 0; i < length; ++i)
 	{
-		T tmp;
+		T tmp = default_construct<T>::get_instance();
 		this->read(tmp);
 		dest.push(tmp);
 	}
@@ -601,5 +605,8 @@ void Buffer::read(std::queue<T>& dest, size_t length)
 
 
 #pragma endregion 
+
+
+}
 
 #endif

@@ -1,5 +1,7 @@
 #include "Buffer.h"
 
+namespace Serializer
+{
 
 void Buffer::alloc_buffer(const std::size_t &size)
 {
@@ -46,10 +48,10 @@ Buffer::Buffer(Buffer&& other) noexcept
 	this->buffer_type = other.buffer_type;
 
 	other.data = nullptr;
-	this->size = 0;
-	this->next_pointer = 0;
-	this->buffer_mode = READ;
-	this->buffer_type = DYNAMIC;
+	other.size = 0;
+	other.next_pointer = 0;
+	other.buffer_mode = READ;
+	other.buffer_type = DYNAMIC;
 }
 
 Buffer::~Buffer()
@@ -95,6 +97,7 @@ Buffer& Buffer::operator=(Buffer&& other) noexcept
 
 void Buffer::set_mode_read()
 {
+	if (this->buffer_mode == READ) return;
 	void *tmp = realloc(this->data, this->size);
 	if (!tmp) throw BufferAllocationException("failed to reallocate buffer space.");
 	this->data = tmp;
@@ -104,6 +107,7 @@ void Buffer::set_mode_read()
 
 void Buffer::set_mode_write(type type)
 {
+	if (this->buffer_mode == WRITE) return;
 	if (type == DYNAMIC)
 	{
 		void *tmp = realloc(this->data, this->size + DEFAULT_BUFFER_SIZE);
@@ -218,12 +222,14 @@ std::ifstream& operator>>(std::ifstream& stream, Buffer& buffer)
 	stream.seekg(0, std::ifstream::beg);
 
 	buffer.next_pointer = 0;
-	const type p_type = buffer.buffer_type;
-	buffer.buffer_type = DYNAMIC;
+	const Buffer::type p_type = buffer.buffer_type;
+	buffer.buffer_type = Buffer::DYNAMIC;
 	buffer.alloc_buffer(buffer.size);
 
 	stream.read(static_cast<char *>(buffer.data), buffer.size);
 	buffer.buffer_type = p_type;
 
 	return stream;
+}
+
 }

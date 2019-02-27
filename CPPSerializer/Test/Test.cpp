@@ -9,8 +9,11 @@
 #include <unordered_set>
 #include <unordered_map>
 
+using namespace ser;
+
 bool test_primitive()
 {
+	
 	char c = 'a';
 	bool b = true;
 	short s = 1;
@@ -19,11 +22,9 @@ bool test_primitive()
 	float f = 3.1f;
 	double d = 3.2;
 
-	int &ri = i;
-
 	bool res = true;
-	Buffer dbuf(DYNAMIC);
-	Buffer sbuf(STATIC, 64);
+	Buffer dbuf(Buffer::DYNAMIC);
+	Buffer sbuf(Buffer::STATIC, 64);
 
 	dbuf << c << b << s << i << l << f << d;
 
@@ -66,8 +67,8 @@ bool test_primitive_array()
 	double d[4] = { 3.2, 3.3, 3.4, 3.5 };
 
 	bool res = true;
-	Buffer dbuf(DYNAMIC);
-	Buffer sbuf(STATIC, 128);
+	Buffer dbuf(Buffer::DYNAMIC);
+	Buffer sbuf(Buffer::STATIC, 128);
 
 	dbuf.write(c, 4);
 	dbuf.write(b, 4);
@@ -132,8 +133,8 @@ bool test_generic()
 	Game game(720, 1280, 2);
 
 	bool res = true;
-	Buffer dbuf(DYNAMIC);
-	Buffer sbuf(STATIC, 1024);
+	Buffer dbuf(Buffer::DYNAMIC);
+	Buffer sbuf(Buffer::STATIC, 1024);
 
 	dbuf << player << game;
 	sbuf << player << game;
@@ -164,8 +165,8 @@ bool test_generic_array()
 
 
 	bool res = true;
-	Buffer dbuf(DYNAMIC);
-	Buffer sbuf(STATIC, 1024);
+	Buffer dbuf(Buffer::DYNAMIC);
+	Buffer sbuf(Buffer::STATIC, 1024);
 
 	dbuf.write(players, 2);
 	dbuf.write(games, 2);
@@ -193,7 +194,6 @@ bool test_generic_array()
 
 	return res;
 }
-
 
 struct hash_player
 {
@@ -231,9 +231,9 @@ bool test_containers()
 	flist.push_front(g1);
 	flist.push_front(g2);
 	
-	std::list<Player> list;
-	list.push_back(p1);
-	list.push_back(p1);
+	std::list<Player*> list;
+	list.push_back(&p1);
+	list.push_back(&p1);
 	
 	std::set<Game> set;
 	set.insert(g1);
@@ -251,9 +251,9 @@ bool test_containers()
 	map[1] = p1;
 	map[2] = p2;
 	
-	std::stack<Game> stack;
-	stack.push(g1);
-	stack.push(g2);
+	std::stack<Game*> stack;
+	stack.push(&g1);
+	stack.push(&g2);
 	
 	std::queue<Player> queue;
 	queue.push(p1);
@@ -261,7 +261,7 @@ bool test_containers()
 
 	bool res = true;
 
-	Buffer buf(DYNAMIC);
+	Buffer buf(Buffer::DYNAMIC);
 
 	buf << sp << pgp;
 	buf << arr << vec << deque << flist << list;
@@ -277,12 +277,12 @@ bool test_containers()
 	std::vector<std::shared_ptr<Game>> nvec;
 	std::deque<Player> ndeque;
 	std::forward_list<Game> nflist;
-	std::list<Player> nlist;
+	std::list<Player*> nlist;
 	std::set<Game> nset;
 	std::unordered_set<Player, hash_player> nuset;
 	std::unordered_map<int, Game> numap;
 	std::map<int, Player> nmap;
-	std::stack<Game> nstack;
+	std::stack<Game*> nstack;
 	std::queue<Player> nqueue;
 
 	buf.read(nsp);
@@ -299,28 +299,22 @@ bool test_containers()
 	buf.read(nstack, 2);
 	buf.read(nqueue, 2);
 
-	//res = res && nsp == sp;
+	res = res && *nsp == *sp;
 	res = res && npgp == pgp;
 	res = res && narr == arr;
-	//res = res && nvec == vec;
 	res = res && ndeque == deque;
 	res = res && nflist == flist;
-	res = res && nlist == list;
 	res = res && nset == set && nmap == map && nuset == uset && numap == umap;
 
-
+	for (int i = 0; i < 2; i++)
+	{
+		res = res && *nlist.front() == *list.front();
+		nlist.pop_front();
+		list.pop_front();
+		res = res && *(nvec[i]) == *(vec[i]);
+	}
 
 	return res;
-}
-
-void print(std::true_type)
-{
-	std::cout << "true" << std::endl;
-}
-
-void print(std::false_type)
-{
-	std::cout << "false" << std::endl;
 }
 
 int main(int argc, char* argv[])
