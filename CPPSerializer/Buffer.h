@@ -36,7 +36,7 @@ private:
 	template <class T>
 	void write(const T &data, std::true_type)
 	{
-		static_assert(std::is_arithmetic<T>::value, "trying to write non primirive non serializable types.");
+		static_assert(std::is_arithmetic<T>::value, "trying to write non primitive non serializable types.");
 		write_generic(static_cast<const void*>(&data), sizeof(data));
 	}
 
@@ -49,7 +49,7 @@ private:
 	template<class T>
 	void write_n_primitive(const T&data, std::true_type)
 	{
-		static_assert(is_serializable<T>::value, "trting to write unserializable type.");
+		static_assert(is_serializable<T>::value, "trying to write unserializable type.");
 		data.serialize(*this);
 	}
 
@@ -74,14 +74,14 @@ private:
 	template<class T>
 	void read(T &dest, std::true_type)
 	{
-		static_assert(std::is_arithmetic<T>::value, "trying to read into primirive non serializable types.");
+		static_assert(std::is_arithmetic<T>::value, "trying to read into primitive non serializable types.");
 		read_generic(static_cast<void *>(&dest), sizeof(dest));
 	}
 
 	template<class T>
 	void read(T &dest, std::false_type)
 	{
-		static_assert(std::is_base_of<Serializable, T>::value, "trying to read into primirive non serializable types.");
+		static_assert(std::is_base_of<Serializable, T>::value, "trying to read into primitive non serializable types.");
 		static_assert(!is_readable_container<T>::value, "trying to read into container without specifying number of elements.");
 		dest.deserialize(*this);
 	}
@@ -114,7 +114,7 @@ private:
 	template<class T>
 	void read(T *dest, const std::size_t &length, std::true_type)
 	{
-		static_assert(std::is_arithmetic<T>::value, "trying to read into primirive non serializable types.");
+		static_assert(std::is_arithmetic<T>::value, "trying to read into primitive non serializable types.");
 		read_generic(static_cast<void *>(dest), sizeof(*dest) * length);
 	}
 
@@ -256,11 +256,34 @@ public:
 	template<class T>
 	Buffer& operator<<(const T &data) { this->write(data); return *this; }
 
+    /**
+     * \brief writes the entire stack into the buffer.
+     * \tparam T a serializable data type or a container of a serializable data type.
+     * \param data the stack containing the data.
+     */
 	template<class T>
 	Buffer& operator<<(std::stack<T> &data) { this->write(data); return *this; }
 
+    /**
+     * \brief writes the entire queue into the buffer.
+     * \tparam T a serializable data type or a container of a serializable data type.
+     * \param data the queue containing the data.
+     */
 	template<class T>
 	Buffer& operator<<(std::queue<T> &data) { this->write(data); return *this; }
+
+	#ifdef __GNUC__
+
+    /**
+     * \brief writes the entire array into the buffer.
+     * \tparam T a serializable data type or a container of a serializable data type.
+     * \tparam length a size_t representing the length of the array.
+     * \param data the queue containing the data.
+     */
+	template<class T, size_t length>
+	Buffer& operator<<(std::array<T, length> &data) { this->write(data); return *this; }
+
+    #endif
 
 #pragma endregion
 
@@ -293,6 +316,19 @@ public:
 	 */
 	template<class T>
 	void write(std::queue<T> &data);
+
+    #ifdef __GNUC__
+
+	/**
+     * \brief writes the entire array into the buffer.
+     * \tparam T a serializable data type or a container of a serializable data type.
+     * \tparam length a size_t representing the length of the array.
+     * \param data the queue containing the data.
+     */
+	template <class T, size_t length>
+	void write(std::array<T, length> &data);
+
+	#endif
 
 	#pragma endregion
 
@@ -450,7 +486,7 @@ public:
 template <class T>
 void Buffer::write(const T* data, const std::size_t &length, std::false_type)
 {
-	static_assert(std::is_base_of<Serializable, T>::value, "trying to write non primirive non serializable types.");
+	static_assert(std::is_base_of<Serializable, T>::value, "trying to write non primitive non serializable types.");
 	if (!data) throw BufferNullPointerException("trying to write nullptr");
 	for (size_t i = 0; i < length; ++i)
 	{
@@ -461,7 +497,7 @@ void Buffer::write(const T* data, const std::size_t &length, std::false_type)
 template <class T>
 void Buffer::write(T **data, const std::size_t &length)
 {
-	static_assert(is_serializable<T>::value, "trying to write non primirive non serializable type into buffer.");
+	static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	if (!data) throw BufferNullPointerException("trying to write nullptr");
 	for (std::size_t i = 0; i < length; i++)
 	{
@@ -477,19 +513,16 @@ void Buffer::write(T **data, const std::size_t &length)
 template <class Itr>
 void Buffer::write(Itr begin, Itr end)
 {
-	static_assert(is_valid_iterator<Itr>::value || is_valid_const_iterator<Itr>::value, "recived invalid iterator");
-	static_assert(is_serializable<typename Itr::value_type>::value, "trying to write non primirive non serializable type into buffer.");
-	Itr itr = begin;
-	for (itr = begin; itr != end; ++itr)
-	{
+	static_assert(is_valid_iterator<Itr>::value || is_valid_const_iterator<Itr>::value, "received invalid iterator");
+	static_assert(is_serializable<typename Itr::value_type>::value, "trying to write non primitive non serializable type into buffer.");
+	for (Itr itr = begin; itr != end; ++itr)
 		this->write(*itr);
-	}
 }
 
 template <class T>
 void Buffer::write(std::stack<T>& data)
 {
-	static_assert(is_serializable<T>::value, "trying to write non primirive non serializable type into buffer.");
+	static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	std::stack<T> tmp;
 	while (!data.empty())
 	{
@@ -507,13 +540,26 @@ void Buffer::write(std::stack<T>& data)
 template <class T>
 void Buffer::write(std::queue<T>& data)
 {
-	static_assert(is_serializable<T>::value, "trying to write non primirive non serializable type into buffer.");
+	static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	while (!data.empty())
 	{
 		this->write(data.front());
 		data.pop();
 	}
 }
+
+#ifdef __GNUC__
+
+template<class T, size_t length>
+void Buffer::write(std::array<T, length> &data)
+{
+    static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
+    for (int i = 0; i < data.size(); ++i) {
+        this->write(data[i]);
+    }
+}
+
+#endif
 
 #pragma endregion
 
@@ -564,7 +610,7 @@ void Buffer::read(std::array<T, length>& dest)
 template <class T>
 void Buffer::read(std::forward_list<T>& dest, size_t length)
 {
-	static_assert(is_deserializable<T>::value, "trying to write non primirive non serializable type into buffer.");
+	static_assert(is_deserializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	std::stack<T> s_tmp;
 	for (size_t i = 0; i < length; ++i)
 	{
@@ -582,7 +628,7 @@ void Buffer::read(std::forward_list<T>& dest, size_t length)
 template <class T>
 void Buffer::read(std::stack<T>& dest, size_t length)
 {
-	static_assert(is_deserializable<T>::value, "trying to write non primirive non serializable type into buffer.");
+	static_assert(is_deserializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	for (size_t i = 0; i < length; ++i)
 	{
 		T tmp = default_construct<T>::get_instance();
@@ -594,7 +640,7 @@ void Buffer::read(std::stack<T>& dest, size_t length)
 template <class T>
 void Buffer::read(std::queue<T>& dest, size_t length)
 {
-	static_assert(is_deserializable<T>::value, "trying to write non primirive non serializable type into buffer.");
+	static_assert(is_deserializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	for (size_t i = 0; i < length; ++i)
 	{
 		T tmp = default_construct<T>::get_instance();

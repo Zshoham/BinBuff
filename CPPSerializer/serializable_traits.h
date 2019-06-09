@@ -128,19 +128,19 @@ namespace impl
 		static constexpr bool test(
 			Itr *pt,
 			Itr const *cpt = nullptr,
-			decltype(pt->operator*()) * = nullptr,
-			decltype(pt->operator++()) * = nullptr,
-			decltype(pt->operator=(std::declval<Itr&>())) * = nullptr,
+			decltype(&pt->operator*()) * = nullptr,
+			decltype(&pt->operator++()) * = nullptr,
+			decltype(&pt->operator=(std::declval<const Itr&>())) * = nullptr,
 			decltype(pt->operator->()) * = nullptr,
-			decltype(pt->operator==(std::declval<Itr&>())) * = nullptr,
-			decltype(pt->operator!=(std::declval<Itr&>())) * = nullptr,
+			decltype((*pt)==(std::declval<Itr&>())) * = nullptr,
+			decltype((*pt)!=(std::declval<Itr&>())) * = nullptr,
 			typename Itr::value_type *pv = nullptr)
 		{
 			typedef typename Itr::value_type value_type;
 
 			return std::is_same<decltype(pt->operator*()), value_type&>::value &&
-				std::is_same<decltype(pt->operator==(std::declval<Itr&>())), bool>::value &&
-				std::is_same<decltype(pt->operator!=(std::declval<Itr&>())), bool>::value &&
+                std::is_same<decltype((*pt)==(std::declval<Itr&>())), bool>::value &&
+                std::is_same<decltype((*pt)!=(std::declval<Itr&>())), bool>::value &&
 				std::is_same<decltype(pt->operator++()), Itr&>::value &&
 				std::is_same<decltype(pt->operator->()), decltype(pv)>::value;
 		}
@@ -163,20 +163,20 @@ namespace impl
 		static constexpr bool test(
 			Itr *pt,
 			Itr const *cpt = nullptr,
-			decltype(pt->operator*())	* = nullptr,
-			decltype(pt->operator++()) * = nullptr,
-			decltype(pt->operator=(std::declval<Itr&>()))	* = nullptr,
+			decltype(&pt->operator*())	* = nullptr,
+			decltype(&pt->operator++()) * = nullptr,
+			decltype(&pt->operator=(std::declval<Itr&>()))	* = nullptr,
 			decltype(pt->operator->()) * = nullptr,
-			decltype(pt->operator==(std::declval<Itr&>())) * = nullptr,
-			decltype(pt->operator!=(std::declval<Itr&>())) * = nullptr,
+			decltype((*pt)==(std::declval<Itr&>())) * = nullptr,
+			decltype((*pt)!=(std::declval<Itr&>())) * = nullptr,
 			typename Itr::value_type *pv = nullptr)
 		{
 			typedef typename Itr::value_type value_type;
 			typedef const value_type* cp_value_type;
 
 			return std::is_same<decltype(pt->operator*()), const value_type&>::value &&
-				std::is_same<decltype(pt->operator==(std::declval<const Itr&>())), bool>::value &&
-				std::is_same<decltype(pt->operator!=(std::declval<const Itr&>())), bool>::value &&
+				std::is_same<decltype((*pt)==(std::declval<const Itr&>())), bool>::value &&
+				std::is_same<decltype((*pt)!=(std::declval<const Itr&>())), bool>::value &&
 				std::is_same<decltype(pt->operator++()), T&>::value &&
 				std::is_same<decltype(pt->operator->()), cp_value_type>::value;
 		}
