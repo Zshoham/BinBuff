@@ -201,8 +201,8 @@ void Buffer::write_generic(const void* data, const std::size_t &size)
 void Buffer::read_generic(void* dest, std::size_t size)
 {
 	if (!data) throw BufferNullPointerException("trying to read data into a null pointer.");
-	if (this->buffer_mode == WRITE) throw BufferIllegalReadException("cannot write to buffer when in read mode.");
-	if (this->next_pointer + this->size < size) throw BufferOverflowException("reached end of buffer.");
+	if (this->buffer_mode == WRITE) throw BufferIllegalWriteException("cannot write to buffer when in read mode.");
+	if (this->next_pointer + size < this->size) throw BufferOverflowException("reached end of buffer.");
 	const char *src = static_cast<char *>(this->data);
 	if (!std::memcpy(dest, src + this->next_pointer, size)) throw BufferAllocationException("failed to allocate additional buffer space.");
 	this->next_pointer += size;
