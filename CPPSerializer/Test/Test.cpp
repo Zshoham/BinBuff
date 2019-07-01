@@ -127,6 +127,15 @@ bool test_primitive_array()
 	return res;
 }
 
+void w(Buffer &buffer, const Player &player) {
+    buffer << player.player_num;
+}
+
+template <typename T>
+void write(const T &data, std::function<void(Buffer&, const T&)> serializer) {
+    serializer(data, data);
+}
+
 bool test_generic()
 {
 	Player player(5);
@@ -138,8 +147,13 @@ bool test_generic()
 
 	dbuf << player << game;
 	sbuf << player << game;
+
+	auto serializer = [](Buffer &buffer, const Player &player) { buffer << player.player_num; };
+
+	dbuf.write<Player>(player, serializer);
+	sbuf.write<Player>(player, serializer);
 	
-	Player dnp, snp;
+	Player dnp, snp, dlnp, slnp;
 	Game dng, sng;
 	
 	dbuf.set_mode_read();
@@ -147,9 +161,15 @@ bool test_generic()
 
 	dbuf >> dnp >> dng;
 	sbuf >> snp >> sng;
-	
-	res = res && player == dnp && player == snp;
+
+    auto deserializer = [](Buffer &buffer, Player &player) { buffer >> player.player_num; };
+
+    dbuf.read<Player>(dlnp, deserializer);
+    sbuf.read<Player>(slnp, deserializer);
+
+    res = res && player == dnp && player == snp;
 	res = res && game == dng && game == sng;
+	res = res && player.player_num == dlnp.player_num && player.player_num == slnp.player_num;
 	
 	return res;
 }
@@ -324,9 +344,12 @@ int main(int argc, char* argv[])
 	else if (!test_generic()) std::cout << "failed generic serialization test." << std::endl;
 	else if (!test_generic_array()) std::cout << "failed generic array serialization test." << std::endl;
 	else if (!test_containers()) std::cout << "failed container serialization test." << std::endl;
-	else std::cout << "all tests passed." << std::endl;
+	else {
+	    std::cout << "all tests passed." << std::endl;
+	    return 0;
+	}
 
 	std::cin.get();
 
-	return 0;
+	return 1;
 }

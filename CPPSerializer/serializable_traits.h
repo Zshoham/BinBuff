@@ -8,6 +8,21 @@
 namespace Serializer
 {
 
+
+/**
+ * This file defines what types are serializable in addition to providing some simple utilities.
+ *
+ * To attain this functionality a substantial amount of black magic is used,
+ * the impl namespace should'nt be messed with science small changes may have significant effects
+ * on the the dependencies of this code especially considering different compilers implement some
+ * of the features used differently.
+ *
+ * Unless you are modifying this library this file probably should'nt be used anyway,
+ * the "rules" defined in this file are used inside static_asserts in the library to verify template input from
+ * the user of the library and thus the user should never need to use these structures.
+ *
+ */
+
 //namespace for all implementation structures, meant to be used internally only.
 namespace impl
 {
@@ -62,7 +77,7 @@ namespace impl
 	{
 
 		template<class S>
-		struct is_base_serializable
+		struct is_primitive_serializable
 		{
 			static const bool value = std::is_base_of<Serializable, S>::value || std::is_arithmetic<S>::value;
 
@@ -71,19 +86,19 @@ namespace impl
 		template<class S>
 		struct serializable
 		{
-			static const bool value = is_base_serializable<S>::value;
+			static const bool value = is_primitive_serializable<S>::value;
 		};
 
 		template<class S>
 		struct serializable<S*>
 		{
-			static const bool value = is_base_serializable<S>::value;
+			static const bool value = is_primitive_serializable<S>::value;
 		};
 
 		template<class S>
 		struct serializable<std::shared_ptr<S>>
 		{
-			static const bool value = is_base_serializable<S>::value;
+			static const bool value = is_primitive_serializable<S>::value;
 		};
 
 		template<class S1, class S2>
@@ -325,18 +340,54 @@ namespace impl
 	
 }
 
+/**
+ * Removes const of inner types.
+ *
+ * example: if the type shared_ptr<cont T> then we will get a type of shared_ptr<T>
+ *
+ * @tparam T a std::pair<K,V> T* or shared_ptr<T>
+ */
 template<class T>
 struct remove_inner_const { typedef typename impl::remove_inner_const<T>::type type; };
 
+/**
+ * Creates an instance of the given type.
+ * T must have an empty constructor otherwise the behavior is undefined.
+ *
+ * @tparam T some pointer, reference or a shared pointer type.
+ */
 template<class T>
 struct default_construct
 {
 	static T get_instance() { return impl::construct<T>::get_instance(); }
 };
 
+/**
+ * Defines a serializable type i.e type T is called serializable if and only if is_serializable<T>::value is true.      <br>
+ *                                                                                                                      <br>
+ * let type T be called primitive serializable if one of the following applies:                                         <br>
+ * *    T is a primitive type or more specifically T needs to satisfies is_arithmetic<T>                                <br>
+ * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.  <br>
+ *                                                                                                                      <br>
+ * let type T be serializable if it is primitive serializable or one of the following:                                  <br>
+ * *    a pointer to a primitive serializable type.                                                                     <br>
+ * *    a std::shared_ptr to a primitive serializable type.                                                             <br>
+ * *    a std::pair of two primitive serializable types.                                                                <br>
+ *                                                                                                                      <br>
+ * @tparam T the type that should be checked for serializability.
+ */
 template<class T>
 struct is_serializable : std::bool_constant<impl::is_serializable<T>::value> {};
 
+
+/**
+ * Defines a deserializable type i.e type T is called deserializable if and only if is_deserializable<T>::value is true.<br>
+ *
+ * let type T be called deserializable if it is also a serializable as defined above, and it has
+ * an empty constructor, more specifically if it satisfies is_default_constructible<T>
+ *
+ * @tparam T the type that should be checked for deserializability.
+ */
 template<class T>
 struct is_deserializable : std::bool_constant<impl::is_deserializable<T>::value> {};
 

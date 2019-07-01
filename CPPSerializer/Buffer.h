@@ -12,6 +12,8 @@
 #include <queue>
 #include <fstream>
 #include <forward_list>
+#include <functional>
+
 #define DEFAULT_BUFFER_SIZE 32
 
 namespace Serializer
@@ -24,8 +26,8 @@ public:
 	enum mode { READ, WRITE };
 
 private:
-	void *data;
-	std::size_t size;
+	void *buffer_data;
+	std::size_t buffer_size;
 	std::size_t next_pointer;
 	type buffer_type;
 	mode buffer_mode;
@@ -56,14 +58,14 @@ private:
 	template <class T>
 	void write_n_primitive(const T& data, std::false_type)
 	{
-		static_assert(is_writable_container<T>::value, "trying to write an unserializable object or an unwritable container into buffer.");
+		static_assert(is_writable_container<T>::value, "trying to write an un-serializable object or an un-writable container into buffer.");
 		this->write(data.begin(), data.end());
 	}
 
 	template <class T>
 	void write(const T* data, const std::size_t &length, std::true_type)
 	{
-		static_assert(std::is_arithmetic<T>::value, "trying to write non primirive non serializable types.");
+		static_assert(std::is_arithmetic<T>::value, "trying to write non primitive non serializable types.");
 		if (!data) throw BufferNullPointerException("trying to write nullptr");
 		write_generic(static_cast<const void*>(data), sizeof(*data) * length);
 	}
@@ -167,7 +169,7 @@ public:
 	//writes the buffer into the file-stream.
 	friend std::ofstream& operator<<(std::ofstream& stream, const Buffer& buffer);
 
-	//reads the data in the file-stream into the buffer.
+	//reads the buffer_data in the file-stream into the buffer.
 	friend std::ifstream& operator>>(std::ifstream& stream, Buffer& buffer);
 
 
@@ -180,6 +182,18 @@ public:
 	 * \param size the size in bytes of the data to be written.
 	 */
 	void write_generic(const void *data, const std::size_t &size);
+
+
+    /**
+     * \brief writes 'data' into the buffer using the gives serializer.
+     * \tparam T a serializable data type or a container of a serializable data type.
+     * \param data the data to be written.
+     * \param serializer a function to preform the serialization.
+     */
+	template <typename T>
+	void write(const T &data, std::function<void(Buffer&, const T&)> serializer) {
+	    serializer(*this, data);
+	}
 
 
 	/**
@@ -341,6 +355,18 @@ public:
 	 * \param size the size in bytes of the data to be read.
 	 */
 	void read_generic(void *dest, std::size_t size);
+
+    /**
+     * \brief reads data from the buffer into a container of deserializable data 'dest'
+     * using the provided deserializer.
+     * \tparam T the type to be deserialized.
+     * \param dest reference to where the data should be read into.
+     * \param deserializer a function to preform the deserialization.
+     */
+    template <class T>
+    void read(T &dest, std::function<void(Buffer&, T&)> deserializer) {
+        deserializer(*this, dest);
+    }
 
 	/**
 	 * \brief reads data from the buffer into 'dest'.
@@ -571,7 +597,7 @@ void Buffer::write(std::array<T, length> &data)
 template <class T>
 void Buffer::read(T* dest, const std::size_t &length, std::false_type)
 {
-	if (!dest) throw BufferNullPointerException("trying to read data into null");
+	if (!dest) throw BufferNullPointerException("trying to read buffer_data into null");
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
 	for (std::size_t i = 0; i < length; ++i)
 	{
@@ -584,7 +610,7 @@ void Buffer::read(T* dest, const std::size_t &length, std::false_type)
 template <class T>
 void Buffer::read(T** dest, std::size_t length)
 {
-	if (!dest) throw BufferNullPointerException("trying to read data into null");
+	if (!dest) throw BufferNullPointerException("trying to read buffer_data into null");
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
 	for (std::size_t i = 0; i < length; ++i)
 	{
