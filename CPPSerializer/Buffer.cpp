@@ -63,14 +63,23 @@ Buffer::~Buffer()
 
 Buffer& Buffer::operator=(const Buffer& other)
 {
-	void *tmp = malloc(other.buffer_size);
-	if(!tmp) throw BufferAllocationException("filed to allocate buffer.");
-	this->buffer_data = tmp;
-	if (!std::memcpy(this->buffer_data, other.buffer_data, other.buffer_size)) throw BufferNullPointerException("failed to write buffer_data into buffer.");
-	this->buffer_size = other.buffer_size;
-	this->next_pointer = other.next_pointer;
-	this->buffer_mode = other.buffer_mode;
-	this->buffer_type = other.buffer_type;
+	if (*this != other)
+	{
+		//allocate the new place for the buffer data.
+		void* tmp = malloc(other.buffer_size);
+		if (!tmp) throw BufferAllocationException("filed to allocate buffer.");
+		if (!std::memcpy(tmp, other.buffer_data, other.buffer_size)) throw BufferNullPointerException("failed to write buffer_data into buffer.");
+
+		//if there were no problems point buffer_data to the newly allocated data.
+		free(this->buffer_data);
+		this->buffer_data = tmp;
+
+		this->buffer_size = other.buffer_size;
+		this->next_pointer = other.next_pointer;
+		this->buffer_mode = other.buffer_mode;
+		this->buffer_type = other.buffer_type;
+	}
+	
 
 	return *this;
 }
@@ -203,7 +212,7 @@ void Buffer::read_generic(void* dest, std::size_t size)
 {
 	if (!buffer_data) throw BufferNullPointerException("trying to read data into a null pointer.");
 	if (this->buffer_mode == WRITE) throw BufferIllegalWriteException("cannot write to buffer when in read mode.");
-	if (this->next_pointer + size < this->buffer_size) throw BufferOverflowException("reached end of buffer.");
+	if (this->next_pointer + size > this->buffer_size) throw BufferOverflowException("reached end of buffer.");
 	const char *src = static_cast<char *>(this->buffer_data);
 	if (!std::memcpy(dest, src + this->next_pointer, size)) throw BufferAllocationException("failed to allocate additional buffer space.");
 	this->next_pointer += size;

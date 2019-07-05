@@ -23,6 +23,21 @@ namespace Serializer
  *
  */
 
+ /**
+* This file defines both a serializable type and a deserializable type, at first this might seem weird
+* why would a type be serializable and not deserializable ?
+* Well it should'nt if it is possible always use a deserializable type it is the same as a serializable type
+* only it has an empty constructor which is useful when initializing an instance for reading.
+* The reason a distinction is made is that to serializing does not require the constructor, and thus it is
+* possible to have a type that only serializable which you would write using this version of the library,
+* and then read using a different version, or alternatively read the data into a different type.
+* The same distinction is made for writable and readable containers.
+*
+* Additionally there are separate definitions for readable sequential and associative containers,
+* this is done to adhere to the standard library which defines different ways of insertion into
+* sequential and associative containers.
+*/
+
 //namespace for all implementation structures, meant to be used internally only.
 namespace impl
 {
@@ -80,7 +95,6 @@ namespace impl
 		struct is_primitive_serializable
 		{
 			static const bool value = std::is_base_of<Serializable, S>::value || std::is_arithmetic<S>::value;
-
 		};
 
 		template<class S>
@@ -143,21 +157,19 @@ namespace impl
 		static constexpr bool test(
 			Itr *pt,
 			Itr const *cpt = nullptr,
-			decltype(&pt->operator*()) * = nullptr,
-			decltype(&pt->operator++()) * = nullptr,
-			decltype(&pt->operator=(std::declval<const Itr&>())) * = nullptr,
-			decltype(pt->operator->()) * = nullptr,
+			decltype(*(*pt)) * = nullptr,
+			decltype(++(*pt)) * = nullptr,
+			decltype((*pt)=(std::declval<const Itr&>())) * = nullptr,
 			decltype((*pt)==(std::declval<Itr&>())) * = nullptr,
 			decltype((*pt)!=(std::declval<Itr&>())) * = nullptr,
 			typename Itr::value_type *pv = nullptr)
 		{
 			typedef typename Itr::value_type value_type;
 
-			return std::is_same<decltype(pt->operator*()), value_type&>::value &&
-                std::is_same<decltype((*pt)==(std::declval<Itr&>())), bool>::value &&
-                std::is_same<decltype((*pt)!=(std::declval<Itr&>())), bool>::value &&
-				std::is_same<decltype(pt->operator++()), Itr&>::value &&
-				std::is_same<decltype(pt->operator->()), decltype(pv)>::value;
+			return std::is_same<decltype(*(*pt)), value_type&>::value&&
+				std::is_same<decltype((*pt) == (std::declval<Itr&>())), bool>::value&&
+				std::is_same<decltype((*pt) != (std::declval<Itr&>())), bool>::value&&
+				std::is_same<decltype(++(*pt)), Itr&>::value;
 		}
 
 		template<typename Itr>
@@ -178,22 +190,19 @@ namespace impl
 		static constexpr bool test(
 			Itr *pt,
 			Itr const *cpt = nullptr,
-			decltype(&pt->operator*())	* = nullptr,
-			decltype(&pt->operator++()) * = nullptr,
-			decltype(&pt->operator=(std::declval<Itr&>()))	* = nullptr,
-			decltype(pt->operator->()) * = nullptr,
-			decltype((*pt)==(std::declval<Itr&>())) * = nullptr,
-			decltype((*pt)!=(std::declval<Itr&>())) * = nullptr,
+			decltype(*(*pt))* = nullptr,
+			decltype(++(*pt))* = nullptr,
+			decltype((*pt) = (std::declval<const Itr&>()))* = nullptr,
+			decltype((*pt) == (std::declval<Itr&>()))* = nullptr,
+			decltype((*pt) != (std::declval<Itr&>()))* = nullptr,
 			typename Itr::value_type *pv = nullptr)
 		{
 			typedef typename Itr::value_type value_type;
-			typedef const value_type* cp_value_type;
 
-			return std::is_same<decltype(pt->operator*()), const value_type&>::value &&
-				std::is_same<decltype((*pt)==(std::declval<const Itr&>())), bool>::value &&
-				std::is_same<decltype((*pt)!=(std::declval<const Itr&>())), bool>::value &&
-				std::is_same<decltype(pt->operator++()), T&>::value &&
-				std::is_same<decltype(pt->operator->()), cp_value_type>::value;
+			return std::is_same<decltype(*(*pt)), const value_type&>::value&&
+				std::is_same<decltype((*pt) == (std::declval<const Itr&>())), bool>::value&&
+				std::is_same<decltype((*pt) != (std::declval<const Itr&>())), bool>::value&&
+				std::is_same<decltype(++(*pt)), Itr&>::value;
 		}
 
 		template<typename Itr>
@@ -224,9 +233,9 @@ namespace impl
 		{
 
 			typedef typename A::iterator iterator;
-
 			typedef typename A::const_iterator const_iterator;
 			typedef typename A::value_type value_type;
+
 			return  std::is_same<decltype(pt->begin()), iterator>::value &&
 				std::is_same<decltype(pt->end()), iterator>::value &&
 				std::is_same<decltype(cpt->begin()), const_iterator>::value &&
@@ -362,19 +371,20 @@ struct default_construct
 	static T get_instance() { return impl::construct<T>::get_instance(); }
 };
 
+
+
+
 /**
  * Defines a serializable type i.e type T is called serializable if and only if is_serializable<T>::value is true.      <br>
- *                                                                                                                      <br>
- * let type T be called primitive serializable if one of the following applies:                                         <br>
- * *    T is a primitive type or more specifically T needs to satisfies is_arithmetic<T>                                <br>
- * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.  <br>
- *                                                                                                                      <br>
- * let type T be serializable if it is primitive serializable or one of the following:                                  <br>
- * *    a pointer to a primitive serializable type.                                                                     <br>
- * *    a std::shared_ptr to a primitive serializable type.                                                             <br>
- * *    a std::pair of two primitive serializable types.                                                                <br>
- *                                                                                                                      <br>
- * @tparam T the type that should be checked for serializability.
+ *                                                                                                                     
+ * let type T be called primitive serializable if one of the following applies:											<br>
+ * *    T is a primitive type or more specifically T needs to satisfies is_arithmetic<T>								<br>
+ * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.	<br>
+ *                                                                                                                     
+ * let type T be serializable if it is primitive serializable or one of the following:									<br>          
+ * *    a pointer to a primitive serializable type.																		<br>              
+ * *    a std::shared_ptr to a primitive serializable type.																<br>              
+ * *    a std::pair of two primitive serializable types.																<br>
  */
 template<class T>
 struct is_serializable : std::bool_constant<impl::is_serializable<T>::value> {};
@@ -384,30 +394,82 @@ struct is_serializable : std::bool_constant<impl::is_serializable<T>::value> {};
  * Defines a deserializable type i.e type T is called deserializable if and only if is_deserializable<T>::value is true.<br>
  *
  * let type T be called deserializable if it is also a serializable as defined above, and it has
- * an empty constructor, more specifically if it satisfies is_default_constructible<T>
- *
- * @tparam T the type that should be checked for deserializability.
+ * an empty constructor, more specifically if it satisfies is_default_constructable<T>
  */
 template<class T>
 struct is_deserializable : std::bool_constant<impl::is_deserializable<T>::value> {};
 
+/**
+* Defines an iterator over a serializable type i.e type Itr is an iterator in this context if and only if is_valid_iterator<Itr>::value is true.<br>
+*
+* The iterator definition is very simple and it is based on the definition in the standard library.					<br>
+* Note that this definition does not require the value type of the iterator to be serializable
+* that responsibility falls on the container being iterated.
+* 
+* let Itr be an iterator if all of the following apply:																<br>
+* * Itr defines copy assignment operator. (itr and o being of type Itr the following should be valid 'itr = o')		<br>
+* * Itr can be compared using equality/inequality operators.														<br>
+*   (itr1 and itr2 being of type Itr the following should be valid 'itr == itr2', 'itr1 != itr2')					<br>
+* * Itr can be dereference as an rvalue. (itr being of type Itr the following should be valid '*itr', 'itr->x')		<br>
+* * Itr can be incremented using the ++ operator. (itr being of type Itr the following should be valid '++itr')		<br>
+*/
 template<class Itr>
 struct is_valid_iterator : std::bool_constant<impl::is_valid_normal_iterator<Itr>::value> {};
 
+/**
+* Defines a const iterator over a serializable type i.e type Itr is a const iterator in this context if and only if is_valid_const_iterator<Itr>::value is true.<br>
+*
+* The const iterator definition is the same as the other iterators with the addition that it allows to iterate over const values.
+*/
 template<class Itr>
 struct is_valid_const_iterator : std::bool_constant<impl::is_valid_const_iterator<Itr>::value> {};
 
+/**
+ * Defines a writable container type i.e type C is called a writable container if and only if is_writable_container<C>::value is true.
+ *
+ * A writable container is simply any container of serializable types that can be serialized as a container without manual iteration.
+ * 
+ * let C be a writable container if all of the following apply:
+ * * C defines both a valid iterator and a valid const iterator (as defined above).
+ * * C defines the following methods to access an iterator pointing to the beginning of the container - begin()
+ *   and to access an iterator pointing to the end of the container - end().
+ * * C defines a value_type that is of a serializable type (as defined above).
+ */
 template<typename C>
 struct is_writable_container : std::bool_constant<impl::is_writable_container<C>::value> {};
 
+/**
+ * Defines a readable container type i.e type C is called a readable container if and only if is_readable_container<C>::value is true.
+ *
+ * A readable container is simply any container of serializable types that can be deserialized as a container without manual iteration.
+ *
+ * let C be a readable container if all of the following apply:
+ * * C defines either a sequential insert method or a associative insert method (as defined below).
+ * * C is also a writable container (as defined above).
+ *
+ */
+template<typename C>
+struct is_readable_container : std::bool_constant<impl::is_readable_ass<C>::value || impl::is_readable_seq<C>::value> {};
+
+/**
+ * Defines a sequential readable container type i.e type C is called a sequential readable container if and only if is_readable_sequential<C>::value is true.
+ * 
+ * A sequential readable container needs to define the insert method so that it accepts an iterator and a value_type,
+ * the iterator pointing to the position in the container where the insertion should be made
+ * and the value type being the value that should be inserted.
+ */
 template<typename C>
 struct is_readable_sequential : std::bool_constant<impl::is_readable_seq<C>::value> {};
 
+/**
+* Defines an associative readable container type i.e type C is called a associative readable container if and only if is_readable_sequential<C>::value is true.
+*
+* A sequential readable container needs to define the insert method so that it accepts a value_type,
+* the value type being usually a key value pair representing the new mapping being added to the container.
+*/
 template<typename C>
 struct is_readable_associative : std::bool_constant<impl::is_readable_ass<C>::value> {};
 
-template<typename C>
-struct is_readable_container : std::bool_constant<impl::is_readable_ass<C>::value || impl::is_readable_seq<C>::value> {};
 
 }
 #endif
