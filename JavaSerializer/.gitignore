@@ -1,0 +1,5 @@
+*
+!src/
+!src/exceptions
+!.gitignore
+!*.java
