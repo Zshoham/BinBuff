@@ -46,6 +46,7 @@ public class Buffer {
         this.mode = other.mode;
         this.data = new byte[other.data.length];
         this.data = Arrays.copyOf(other.data, other.data.length);
+        this.unsafe = other.unsafe;
     }
 
     /**
@@ -180,8 +181,8 @@ public class Buffer {
     public <T> void write(ISerializer<T> serializer, T data) { serializer.serialize(data, this); }
 
     private void writeIterable(Iterable data) throws BufferException {
-        for (Object datum : data) {
-            write(datum);
+        for (Object itr : data) {
+            write(itr);
         }
     }
 
@@ -383,19 +384,19 @@ public class Buffer {
 
     private static <T> T instantiate(Class<T> c) throws IllegalAccessException, InstantiationException {
         if (c.getSimpleName().equals("Byte")) return (T) new Byte((byte)0);
-        else if (c.getSimpleName().equals("Boolean")) return (T) new Boolean(false);
+        else if (c.getSimpleName().equals("Boolean")) return (T) Boolean.FALSE;
         else if (c.getSimpleName().equals("Short")) return (T) new Short((short)0);
         else if (c.getSimpleName().equals("Character")) return (T) new Character((char)0);
         else if (c.getSimpleName().equals("Integer")) return (T) new Integer(0);
         else if (c.getSimpleName().equals("Float")) return (T) new Float(0f);
-        else if (c.getSimpleName().equals("Long")) return (T) new Long(0l);
+        else if (c.getSimpleName().equals("Long")) return (T) new Long(0L);
         else if (c.getSimpleName().equals("Double")) return (T) new Double(0d);
         return c.newInstance();
     }
 
     public <T> void read(Collection<T> dest, Class<T> type, int amount) throws BufferException {
         for (int i = 0; i < amount; i++) {
-            T elem = null;
+            T elem;
             try { elem = instantiate(type); }
             catch (IllegalAccessException | InstantiationException e) {
                 throw new BufferIllegalReadException("Cannot read object of type - " + type.getSimpleName() +
@@ -408,7 +409,7 @@ public class Buffer {
 
     public <T> void read(Collection<T> dest, IDeserializer<T> deserializer, int amount) throws BufferException {
         for (int i = 0; i < amount; i++) {
-            T elem = null;
+            T elem;
             Class<T> type = deserializer.getTypeClass();
             try { elem = instantiate(type); }
             catch (InstantiationException | IllegalAccessException e) {
@@ -422,8 +423,8 @@ public class Buffer {
 
     public <K, V> void read(Map<K, V> dest, Class<K> keyType, Class<V> valueType, int amount) throws BufferException {
         for (int i = 0; i < amount; i++) {
-            K key = null;
-            V value = null;
+            K key;
+            V value;
             try {
                 key = instantiate(keyType);
                 value = instantiate(valueType);
@@ -438,8 +439,8 @@ public class Buffer {
     }
 
     public <K, V> void read(Map<K, V> dest, IDeserializer<K> keyDe, IDeserializer<V> valueDe, int amount) throws BufferException {
-        K key = null;
-        V value = null;
+        K key;
+        V value;
         Class<K> keyType = keyDe.getTypeClass();
         Class<V> valueType = valueDe.getTypeClass();
         try {
