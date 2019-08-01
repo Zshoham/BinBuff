@@ -1,9 +1,33 @@
-import exceptions.*;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.util.*;
 
+/**
+ * The buffer is a buffer for storing serialized data,
+ * it contains a byte array with all the serialized data that was written to it.
+ * A buffer may be in one of two modes: <br>
+ * * WRITE - allows only writes to the buffer. <br>
+ * * READ - allows only reads from the buffer. <br>
+ * note: switching between WRITE and READ modes is relatively costly
+ * thus it is recommended to structure the use of the buffer so that reading and writing do not overlap,
+ * for example the code should look something like:     <br>
+ *      Buffer buf = new Buffer();                      <br>
+ *      ------some other operations-----                <br>
+ *      buf.write(some_data);                           <br>
+ *      buf.write(some_more_data);                      <br>
+ *      ------some more operations------                <br>
+ *      buf.setRead();                                  <br>
+ *      buf.read(read_into_this);                       <br>
+ *      ------end of use for buf--------                <br>
+ *
+ * As well as modes a buffer may also have two types:
+ * * DYNAMIC - will allocate new space to the buffer if needed.
+ * * STATIC - will not allocate new space, and throw an exception if a write is attempted
+ *   when there isn't enough space.
+ */
 public class Buffer {
 
     public enum TYPE { DYNAMIC, STATIC }
@@ -22,12 +46,12 @@ public class Buffer {
      * if there are 'size' free bytes then nothing is changed.
      * otherwise the needed number of bytes will be added.
      * @param size number of bytes that need to be allocated.
-     * @throws BufferIllegalOperationException if additional allocation is attempted on a STATIC buffer.
+     * @throws IllegalStateException if additional allocation is attempted on a STATIC buffer.
      */
-    private void alloc_buffer(int size) throws BufferIllegalOperationException {
+    private void alloc_buffer(int size) throws IllegalStateException {
         if (this.data.length - this.pointer < size) {
             if (this.type == TYPE.STATIC)
-                throw new BufferIllegalOperationException("cannot change size of static buffer.");
+                throw new IllegalStateException("cannot change size of STATIC buffer.");
             byte[] arr = null;
             int length = 0;
             if (size > this.data.length * 2) length = this.pointer + size;
@@ -96,12 +120,22 @@ public class Buffer {
         this.data = Arrays.copyOf(this.data, this.pointer + extraSize);
     }
 
+    /**
+     * Sets the Buffer to WRITE mode, enabling changing the contents of the buffer.
+     * @param type the type of the newly writable Buffer.
+     * @see Buffer#setWrite(TYPE, int)
+     */
     public void setWrite(TYPE type) {
-        this.setWrite(type, 32);
+        this.setWrite(type, 0);
     }
 
+    /**
+     * Sets the Buffer to WRITE mode, enabling changing the contents of the buffer.
+     * The TYPE of the buffer will be changed to DYNAMIC.
+     * @see Buffer#setWrite(TYPE, int)
+     */
     public void setWrite() {
-        this.setWrite(TYPE.DYNAMIC, 32);
+        this.setWrite(TYPE.DYNAMIC, 0);
     }
 
     /**
@@ -115,33 +149,54 @@ public class Buffer {
         return Arrays.copyOf(this.data, this.pointer + 1);
     }
 
-    public void increment(int amount) throws BufferException {
+    /**
+     * Moves the read/write pointer of the buffer by adding 'amount' to the current pointer.
+     * In order to move the pointer backwards set amount to a negative value.
+     * note: that the pointer could be moved past the last byte that was written into
+     * space that was allocated but is not written, because of this it is not recommended
+     * changing the pointer while in WRITE mode.
+     * @param amount signed amount of integers to skip.
+     * @throws BufferOverflowException if the pointer is moved past the end of the buffer.
+     * @throws BufferUnderflowException if the pointer is moved to a position smaller than 0.
+     */
+    public void seekByte(int amount) throws BufferOverflowException, BufferUnderflowException {
         if (this.data.length < this.pointer + amount)
-            throw new BufferOverflowException("trying to jump outside of buffer bounds.");
+            throw new BufferOverflowException();
+        if (this.pointer + amount < 0)
+            throw new BufferUnderflowException();
         this.pointer += amount;
     }
 
-    public void increment() throws BufferException { increment(1); }
+    /**
+     * Moves the read/write pointer to the next byte.
+     * @throws BufferOverflowException if the pointer is currently pointing to the last allocated byte.
+     * @see Buffer#seekByte(int)
+     */
+    public void nextByte() throws BufferOverflowException { seekByte(1); }
 
-    public void decrement(int amount) throws BufferException {
-        if (this.pointer - amount < 0)
-            throw new BufferUnderflowException("trying to jump outside of buffer bounds.");
-        this.pointer -= amount;
-    }
+    /**
+     * Moves the read/write pointer to the previous byte.
+     * @throws BufferUnderflowException if the pointer is currently pointing to the first byte in the buffer.
+     * @see Buffer#seekByte(int)
+     */
+    public void prevByte() throws BufferUnderflowException { seekByte(-1); }
 
-    public void decrement() throws BufferException { decrement(1); }
-
-
+    /**
+     * Moves the read/write pointer to the start of the buffer (index 0).
+     * Writing after a rewind will overwrite the data in the buffer,
+     * this makes the rewind equivalent to clear operation.
+     */
+    public void rewind() { this.pointer = 0; }
 
     //region Write
 
-    public <T> void write(T... data) throws BufferException {
+    public <T> void write(T... data) throws IllegalArgumentException, IllegalStateException {
         for (T elem : data) {
             write(elem);
         }
     }
 
-    public <T> void write(T data) throws BufferException {
+    public <T> void write(T data) throws IllegalArgumentException, IllegalStateException {
         if (data instanceof Byte) write((byte)(Byte) data);
         else if (data instanceof Boolean) write((boolean)(Boolean) data);
         else if (data instanceof Short) write((short)(Short) data);
@@ -161,63 +216,95 @@ public class Buffer {
         else if (data instanceof Iterable) writeIterable((Iterable) data);
         else if (data instanceof Map) writeMap((Map) data);
         else if (data instanceof ISerializable) write((ISerializable) data);
-        else throw new BufferException("trying to write an unsupported type - " + data.getClass().getSimpleName() + ".");
+        else throw new IllegalArgumentException("trying to write an unsupported type - " + data.getClass().getSimpleName() + ".");
     }
 
-    public void write(ISerializable... data) {
+    public void write(ISerializable... data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         for (ISerializable serializable : data) {
             serializable.serialize(this);
         }
     }
 
-    public void write(ISerializable data) { data.serialize(this); }
+    public void write(ISerializable data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+        data.serialize(this);
+    }
 
-    public <T> void write(ISerializer<T> serializer, T... data) {
+    public <T> void write(ISerializer<T> serializer, T... data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         for (T elem : data) {
             serializer.serialize(elem, this);
         }
     }
 
-    public <T> void write(ISerializer<T> serializer, T data) { serializer.serialize(data, this); }
+    public <T> void write(ISerializer<T> serializer, T data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+        serializer.serialize(data, this);
+    }
 
-    private void writeIterable(Iterable data) throws BufferException {
+    private void writeIterable(Iterable data) throws IllegalStateException {
         for (Object itr : data) {
             write(itr);
         }
     }
 
-    public void writeMap(Map data) {
+    public <T> void write(ISerializer<T> serializer, Iterable<T>... data) throws IllegalStateException{
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+        for (Iterable<T> iterable : data) {
+            for (T itr : iterable) {
+                serializer.serialize(itr, this);
+            }
+        }
+    }
+
+    private void writeMap(Map data) throws IllegalStateException {
         for (Object entry : data.entrySet()) {
             write(((Map.Entry)entry).getKey());
             write(((Map.Entry)entry).getValue());
         }
     }
 
+    public <K, V> void write(ISerializer<K> keySer, ISerializer<V> valueSer, Map<K, V>... data) {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+        for (Map<K, V> map : data) {
+            for (Map.Entry<K, V> entry : map.entrySet()) {
+                keySer.serialize(entry.getKey(), this);
+                valueSer.serialize(entry.getValue(), this);
+            }
+        }
+    }
+
     //region Write Primitive
 
-    public void write(byte data) throws BufferException {
+    public void write(byte data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(1);
         this.data[pointer++] = data;
     }
 
-    public void write(boolean data) throws BufferException {
+    public void write(boolean data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         if (data) write((byte) 1);
         else write((byte) 0);
     }
 
-    public void write(short data) throws BufferException {
+    public void write(short data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(2);
         this.data[pointer++] = (byte) (data >> 8);
         this.data[pointer++] = (byte) (data & 0xff);
     }
 
-    public void write(char data) throws BufferException {
+    public void write(char data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(2);
         this.data[pointer++] = (byte) (data >> 8);
         this.data[pointer++] = (byte) (data & 0xff);
     }
 
-    public void write(int data) throws BufferException {
+    public void write(int data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(4);
         this.data[pointer++] = (byte) (data >> 24);
         this.data[pointer++] = (byte) (data >> 16);
@@ -225,7 +312,8 @@ public class Buffer {
         this.data[pointer++] = (byte) (data & 0xff);
     }
 
-    public void write(long data) throws BufferException {
+    public void write(long data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(8);
         this.data[pointer++] = (byte) (data >> 56);
         this.data[pointer++] = (byte) (data >> 48);
@@ -237,13 +325,15 @@ public class Buffer {
         this.data[pointer++] = (byte) (data & 0xff);
     }
 
-    public void write(float data) throws BufferException {
+    public void write(float data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(4);
         int intVal = Float.floatToIntBits(data);
         this.write(intVal);
     }
 
-    public void write(double data) throws BufferException {
+    public void write(double data) throws IllegalStateException {
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(8);
         long longVal = Double.doubleToLongBits(data);
         this.write(longVal);
@@ -252,49 +342,49 @@ public class Buffer {
 
     //region Write Primitive Array
 
-    public void write(byte[] data) throws BufferException {
+    public void write(byte[] data) throws IllegalStateException {
         for (byte b : data) {
             write(b);
         }
     }
 
-    public void write(boolean[] data) throws BufferException {
+    public void write(boolean[] data) throws IllegalStateException {
         for(boolean b: data) {
             write(b);
         }
     }
 
-    public void write(short[] data) throws BufferException {
+    public void write(short[] data) throws IllegalStateException {
         for (short s : data) {
             write(s);
         }
     }
 
-    public void write(char[] data) throws BufferException {
+    public void write(char[] data) throws IllegalStateException {
         for (char c : data) {
             write(c);
         }
     }
 
-    public void write(int[] data) throws BufferException {
+    public void write(int[] data) throws IllegalStateException {
         for (int i : data) {
             write(i);
         }
     }
 
-    public void write(long[] data) throws BufferException {
+    public void write(long[] data) throws IllegalStateException {
         for (long l : data) {
             write(l);
         }
     }
 
-    public void write(float[] data) throws BufferException {
+    public void write(float[] data) throws IllegalStateException {
         for (float f : data) {
             write(f);
         }
     }
 
-    public void write(double[] data) throws BufferException {
+    public void write(double[] data) throws IllegalStateException {
         for (double d : data) {
             write(d);
         }
@@ -308,13 +398,37 @@ public class Buffer {
 
     //region Read
 
-    public <T> void read(T... dest) {
+    private static <T> T instantiate(Class<T> c) throws IllegalAccessException, InstantiationException {
+        if (c.getSimpleName().equals("Byte")) return (T) new Byte((byte)0);
+        else if (c.getSimpleName().equals("Boolean")) return (T) Boolean.FALSE;
+        else if (c.getSimpleName().equals("Short")) return (T) new Short((short)0);
+        else if (c.getSimpleName().equals("Character")) return (T) new Character((char)0);
+        else if (c.getSimpleName().equals("Integer")) return (T) new Integer(0);
+        else if (c.getSimpleName().equals("Float")) return (T) new Float(0f);
+        else if (c.getSimpleName().equals("Long")) return (T) new Long(0L);
+        else if (c.getSimpleName().equals("Double")) return (T) new Double(0d);
+        return c.newInstance();
+    }
+
+    private Unsafe getUnsafe() {
+        if (this.unsafe != null) return this.unsafe;
+        try {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            this.unsafe = (Unsafe)field.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return this.unsafe;
+    }
+
+    public <T> void read(T... dest) throws IllegalArgumentException, IllegalStateException {
         for (T elem : dest) {
             read(elem);
         }
     }
 
-    public <T> void read(T dest) throws BufferException {
+    public <T> void read(T dest) throws IllegalArgumentException, IllegalStateException {
         if (dest instanceof Byte)           unsafeReadByte((Byte)       dest);
         else if (dest instanceof Boolean)   unsafeReadBoolean((Boolean) dest);
         else if (dest instanceof Short)     unsafeReadShort((Short)     dest);
@@ -332,22 +446,11 @@ public class Buffer {
         else if (dest instanceof float[])   read((float[])  dest);
         else if (dest instanceof double[])  read((double[]) dest);
         else if (dest instanceof ISerializable) read((ISerializable) dest);
-        else throw new BufferException("trying to read an unsupported type - " + dest.getClass().getSimpleName() + ".");
+        else throw new IllegalArgumentException("trying to read an unsupported type - " + dest.getClass().getSimpleName() + ".");
     }
 
-    private Unsafe getUnsafe() {
-        if (this.unsafe != null) return this.unsafe;
-        try {
-            Field field = Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            this.unsafe = (Unsafe)field.get(null);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return this.unsafe;
-    }
-
-    public void read(ISerializable... data) {
+    public void read(ISerializable... data) throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         for (int i = 0; i < data.length; i++) {
             if (data[i] == null) {
                 try {
@@ -360,46 +463,29 @@ public class Buffer {
         }
     }
 
-    public void read(ISerializable data) {
+    public void read(ISerializable data) throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         data.deserialize(this);
     }
 
-    public <T> void read(IDeserializer<T> deserializer, T... dest) {
+    public <T> void read(IDeserializer<T> deserializer, T... dest) throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         for (T elem : dest) {
             deserializer.deserialize(elem, this);
         }
     }
 
-    public <T> void read(IDeserializer<T> deserializer, T dest) {
-        if (dest == null) {
-            Class<T> type = deserializer.getTypeClass();
-            try { dest = type.newInstance(); }
-            catch (InstantiationException | IllegalAccessException e) {
-                throw new BufferIllegalReadException("Cannot read object of type - " + type.getSimpleName() +
-                        ", all readable classes must have an empty constructor");
-            }
-        }
+    public <T> void read(IDeserializer<T> deserializer, T dest) throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         deserializer.deserialize(dest, this);
     }
 
-    private static <T> T instantiate(Class<T> c) throws IllegalAccessException, InstantiationException {
-        if (c.getSimpleName().equals("Byte")) return (T) new Byte((byte)0);
-        else if (c.getSimpleName().equals("Boolean")) return (T) Boolean.FALSE;
-        else if (c.getSimpleName().equals("Short")) return (T) new Short((short)0);
-        else if (c.getSimpleName().equals("Character")) return (T) new Character((char)0);
-        else if (c.getSimpleName().equals("Integer")) return (T) new Integer(0);
-        else if (c.getSimpleName().equals("Float")) return (T) new Float(0f);
-        else if (c.getSimpleName().equals("Long")) return (T) new Long(0L);
-        else if (c.getSimpleName().equals("Double")) return (T) new Double(0d);
-        return c.newInstance();
-    }
-
-    public <T> void read(Collection<T> dest, Class<T> type, int amount) throws BufferException {
+    public <T> void read(Collection<T> dest, Class<T> type, int amount) throws IllegalStateException {
         for (int i = 0; i < amount; i++) {
             T elem;
             try { elem = instantiate(type); }
             catch (IllegalAccessException | InstantiationException e) {
-                throw new BufferIllegalReadException("Cannot read object of type - " + type.getSimpleName() +
+                throw new IllegalArgumentException("Cannot read object of type - " + type.getSimpleName() +
                         ", all readable classes must have an empty constructor");
             }
             read(elem);
@@ -407,13 +493,14 @@ public class Buffer {
         }
     }
 
-    public <T> void read(Collection<T> dest, IDeserializer<T> deserializer, int amount) throws BufferException {
+    public <T> void read(Collection<T> dest, IDeserializer<T> deserializer, int amount) throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         for (int i = 0; i < amount; i++) {
             T elem;
             Class<T> type = deserializer.getTypeClass();
             try { elem = instantiate(type); }
             catch (InstantiationException | IllegalAccessException e) {
-                throw new BufferIllegalReadException("Cannot read object of type - " + type.getSimpleName() +
+                throw new IllegalArgumentException("Cannot read object of type - " + type.getSimpleName() +
                         ", all readable classes must have an empty constructor");
             }
             read(elem);
@@ -421,7 +508,7 @@ public class Buffer {
         }
     }
 
-    public <K, V> void read(Map<K, V> dest, Class<K> keyType, Class<V> valueType, int amount) throws BufferException {
+    public <K, V> void read(Map<K, V> dest, Class<K> keyType, Class<V> valueType, int amount) throws IllegalStateException {
         for (int i = 0; i < amount; i++) {
             K key;
             V value;
@@ -429,7 +516,7 @@ public class Buffer {
                 key = instantiate(keyType);
                 value = instantiate(valueType);
             } catch (IllegalAccessException | InstantiationException e) {
-                throw new BufferIllegalReadException("Cannot read object of type - Map<" + keyType.getSimpleName() +
+                throw new IllegalArgumentException("Cannot read object of type - Map<" + keyType.getSimpleName() +
                        ", " + valueType + "> , all readable classes must have an empty constructor");
             }
             read(key);
@@ -438,7 +525,8 @@ public class Buffer {
         }
     }
 
-    public <K, V> void read(Map<K, V> dest, IDeserializer<K> keyDe, IDeserializer<V> valueDe, int amount) throws BufferException {
+    public <K, V> void read(Map<K, V> dest, IDeserializer<K> keyDe, IDeserializer<V> valueDe, int amount) throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         K key;
         V value;
         Class<K> keyType = keyDe.getTypeClass();
@@ -447,7 +535,7 @@ public class Buffer {
             key = instantiate(keyType);
             value = instantiate(valueType);
         } catch (IllegalAccessException | InstantiationException e) {
-            throw new BufferIllegalReadException("Cannot read object of type - Map<" + keyType.getSimpleName() +
+            throw new IllegalArgumentException("Cannot read object of type - Map<" + keyType.getSimpleName() +
                     ", " + valueType + "> , all readable classes must have an empty constructor");
         }
         keyDe.deserialize(key, this);
@@ -457,11 +545,12 @@ public class Buffer {
 
     //region Read Primitive
 
-    public byte readByte() {
+    public byte readByte() throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         return this.data[pointer++];
     }
 
-    private void unsafeReadByte(Byte dest) {
+    private void unsafeReadByte(Byte dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -472,11 +561,12 @@ public class Buffer {
         }
     }
 
-    public boolean readBoolean() {
+    public boolean readBoolean() throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         return this.data[pointer++] == 1;
     }
 
-    private void unsafeReadBoolean(Boolean dest) {
+    private void unsafeReadBoolean(Boolean dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -487,14 +577,15 @@ public class Buffer {
         }
     }
 
-    public short readShort() {
+    public short readShort() throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         byte b1 = data[pointer++];
         byte b0 = data[pointer++];
 
         return (short) (((b1 & 0xff) << 8) | (b0 & 0xff));
     }
 
-    private void unsafeReadShort(Short dest) {
+    private void unsafeReadShort(Short dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -505,14 +596,15 @@ public class Buffer {
         }
     }
 
-    public char readChar() {
+    public char readChar() throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         byte b1 = data[pointer++];
         byte b0 = data[pointer++];
 
         return (char) (((b1 & 0xff) << 8) | (b0 & 0xff));
     }
 
-    private void unsafeReadChar(Character dest) {
+    private void unsafeReadChar(Character dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -523,7 +615,8 @@ public class Buffer {
         }
     }
 
-    public int readInt() {
+    public int readInt() throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         byte b3 = data[pointer++];
         byte b2 = data[pointer++];
         byte b1 = data[pointer++];
@@ -532,7 +625,7 @@ public class Buffer {
         return (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
     }
 
-    private void unsafeReadInt(Integer dest) {
+    private void unsafeReadInt(Integer dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -543,7 +636,8 @@ public class Buffer {
         }
     }
 
-    public long readLong() {
+    public long readLong() throws IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         byte b7 = data[pointer++];
         byte b6 = data[pointer++];
         byte b5 = data[pointer++];
@@ -557,7 +651,7 @@ public class Buffer {
                 | ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
     }
 
-    private void unsafeReadLong(Long dest) {
+    private void unsafeReadLong(Long dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -568,11 +662,11 @@ public class Buffer {
         }
     }
 
-    public float readFloat() {
+    public float readFloat() throws IllegalStateException {
         return Float.intBitsToFloat(readInt());
     }
 
-    private void unsafeReadFloat(Float dest) {
+    private void unsafeReadFloat(Float dest) throws IllegalStateException {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -583,11 +677,11 @@ public class Buffer {
         }
     }
 
-    public double readDouble() {
+    public double readDouble() throws IllegalStateException {
         return Double.longBitsToDouble(readLong());
     }
 
-    private void unsafeReadDouble(Double dest) {
+    private void unsafeReadDouble(Double dest) throws IllegalStateException  {
         Unsafe unsafe = getUnsafe();
         Field value;
         try {
@@ -600,65 +694,67 @@ public class Buffer {
 
     //region Read Primitive Array
 
-    public void read(byte[] dest) throws BufferException {
+    public void read(byte[] dest) throws BufferOverflowException, IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = this.data[pointer++];
         }
     }
 
-    public void read(boolean[] dest) throws BufferException {
+    public void read(boolean[] dest) throws BufferOverflowException, IllegalStateException {
+        if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
         if(this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = this.data[pointer++] == 1;
         }
     }
 
-    public void read(short[] dest) throws BufferException {
+    public void read(short[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = readShort();
         }
     }
 
-    public void read(char[] dest) throws BufferException {
+    public void read(char[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = readChar();
         }
     }
 
-    public void read(int[] dest) throws BufferException {
+    public void read(int[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = readInt();
         }
     }
 
-    public void read(long[] dest) throws BufferException {
+    public void read(long[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = readLong();
         }
     }
 
-    public void read(float[] dest) throws BufferException {
+    public void read(float[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = readFloat();
         }
     }
 
-    public void read(double[] dest) throws BufferException {
+    public void read(double[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.data.length < this.pointer + dest.length)
-            throw new BufferOverflowException("trying to read outside the buffer bounds.");
+            throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = readDouble();
         }

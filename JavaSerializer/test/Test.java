@@ -1,11 +1,9 @@
-import exceptions.BufferException;
-
 import java.util.*;
 
 public class Test {
 
 
-    public static void main(String[] args) throws BufferException {
+    public static void main(String[] args) {
         if (!testPrimitive()) System.out.println("failed primitive test.");
         else if (!testPrimitiveArray()) System.out.println("failed primitive array test.");
         else if (!testSerializable()) System.out.println("failed serializable test.");
