@@ -6,7 +6,7 @@ import java.nio.BufferUnderflowException;
 import java.util.*;
 
 /**
- * The buffer is a buffer for storing serialized data,
+ * The buffer stores serialized data,
  * it contains a byte array with all the serialized data that was written to it.
  * A buffer may be in one of two modes: <br>
  * * WRITE - allows only writes to the buffer. <br>
@@ -190,12 +190,28 @@ public class Buffer {
 
     //region Write
 
+    /**
+     * Write all the data into the buffer in order from left to right,
+     * that is for a call write(D1, D2, D3, ... ,Dn)
+     * the data will be written into the buffer in the order of D1 -> D2 -> D3 ... -> Dn.
+     * @param data the data to be written to the buffer.
+     * @param <T> the type of the data that will be written.
+     * @throws IllegalArgumentException if T is not a supported type.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
     public <T> void write(T... data) throws IllegalArgumentException, IllegalStateException {
         for (T elem : data) {
             write(elem);
         }
     }
 
+    /**
+     * Writes the given data into the buffer.
+     * @param data the data to be written to the buffer.
+     * @param <T> the type of the data that will be written.
+     * @throws IllegalArgumentException if T is not a supported type.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
     public <T> void write(T data) throws IllegalArgumentException, IllegalStateException {
         if (data instanceof Byte) write((byte)(Byte) data);
         else if (data instanceof Boolean) write((boolean)(Boolean) data);
@@ -219,6 +235,13 @@ public class Buffer {
         else throw new IllegalArgumentException("trying to write an unsupported type - " + data.getClass().getSimpleName() + ".");
     }
 
+    /**
+     * Write all the data into the buffer in order from left to right,
+     * that is for a call write(D1, D2, D3, ... ,Dn)
+     * the data will be written into the buffer in the order of D1 -> D2 -> D3 ... -> Dn.
+     * @param data the data to be written into the buffer.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
     public void write(ISerializable... data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         for (ISerializable serializable : data) {
@@ -226,11 +249,25 @@ public class Buffer {
         }
     }
 
+    /**
+     * Writes the given data into the buffer.
+     * @param data the data to be written to the buffer.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
     public void write(ISerializable data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         data.serialize(this);
     }
 
+    /**
+     * Write all the data into the buffer using the given serializer.
+     * the writing is done in order from left to right, that is for a call write(serializer, D1, D2, D3, ... ,Dn)
+     * the data will be written into the buffer in the order of D1 -> D2 -> D3 ... -> Dn.
+     * @param serializer the serializer that should be used to write the data.
+     * @param data the data to be written into the buffer.
+     * @param <T> the type of the data that will be written.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
     public <T> void write(ISerializer<T> serializer, T... data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         for (T elem : data) {
@@ -238,23 +275,26 @@ public class Buffer {
         }
     }
 
+    /**
+     * Writes the given data into the buffer.
+     * @param serializer the serializer that should be used to write the data.
+     * @param data the data to be written to the buffer.
+     * @param <T> the type of the data that will be written.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
     public <T> void write(ISerializer<T> serializer, T data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         serializer.serialize(data, this);
     }
 
+    /*
+    These two functions are used internally to deconstruct Iterable and Map types into their elements,
+    and then return the elements to be written through the generic write method.
+     */
+
     private void writeIterable(Iterable data) throws IllegalStateException {
         for (Object itr : data) {
             write(itr);
-        }
-    }
-
-    public <T> void write(ISerializer<T> serializer, Iterable<T>... data) throws IllegalStateException{
-        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
-        for (Iterable<T> iterable : data) {
-            for (T itr : iterable) {
-                serializer.serialize(itr, this);
-            }
         }
     }
 
@@ -265,6 +305,35 @@ public class Buffer {
         }
     }
 
+    /**
+     * Write all the data into the buffer using the given serializer.
+     * the writing is done in order from left to right, that is for a call write(serializer, IT1, IT2, IT3, ... ,ITn)
+     * the data will be written into the buffer in the order of IT1 -> IT2 -> IT3 ... -> ITn.
+     * note: the serializer should be for the type contained in each Iterable not for the Iterable itself.
+     * @param serializer the serializer that should be used to write the data.
+     * @param data the data to be written to the buffer.
+     * @param <T> the type of the data that will be written.
+     * @throws IllegalStateException if the buffer is in READ mode or it is STATIC and there is not enough space.
+     */
+    public <T> void write(ISerializer<T> serializer, Iterable<T>... data) throws IllegalStateException{
+        if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+        for (Iterable<T> iterable : data) {
+            for (T itr : iterable) {
+                serializer.serialize(itr, this);
+            }
+        }
+    }
+
+    /**
+     * Write all the data into the buffer using the given serializer.
+     * the writing is done in order from left to right, that is for a call write(keySer, valueSer, M1, M2, M3, ... ,Mn)
+     * the data will be written into the buffer in the order of M1 -> M2 -> M3 ... -> Mn.
+     * @param keySer the serializer that should be used for the key type
+     * @param valueSer the serializer that should be used for the value type.
+     * @param data the data to be written.
+     * @param <K> the key type of the Maps.
+     * @param <V> the value type of the Maps.
+     */
     public <K, V> void write(ISerializer<K> keySer, ISerializer<V> valueSer, Map<K, V>... data) {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         for (Map<K, V> map : data) {
