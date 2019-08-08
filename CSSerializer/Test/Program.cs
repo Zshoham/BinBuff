@@ -292,6 +292,7 @@ namespace Test
 			res = res && nhs.Contains(p1) && nhs.Contains(p2);
 			res = res && nss.Contains(p1) && nss.Contains(p2);
 
+            Console.WriteLine("hello yuval!");
 
 			return res;
 		}

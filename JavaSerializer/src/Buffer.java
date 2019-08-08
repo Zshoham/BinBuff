@@ -1,6 +1,4 @@
-import sun.misc.Unsafe;
-
-import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.util.*;
@@ -39,8 +37,6 @@ public class Buffer {
 	private TYPE type;
 	private MODE mode;
 
-	private Unsafe unsafe;
-
 	/**
 	 * Allocate 'size' free bytes for the buffer.
 	 * if there are 'size' free bytes then nothing is changed.
@@ -70,7 +66,6 @@ public class Buffer {
 		this.mode = other.mode;
 		this.data = new byte[other.data.length];
 		this.data = Arrays.copyOf(other.data, other.data.length);
-		this.unsafe = other.unsafe;
 	}
 
 	/**
@@ -466,52 +461,18 @@ public class Buffer {
 
 	//region Read
 
-	/*
-	This function is used in order to instantiate an element in a collection,
-	it defines special behavior for the java Boxed primitives who do not define an empty constructor,
-	instead they are instantiated with the value 0 (char is counted among the numeric values) for numeric types and false for booleans.
-	 */
-	private static <T> T instantiate(Class<T> c) throws IllegalAccessException, InstantiationException {
-		if (c.equals(Byte.class)) return (T) new Byte((byte)0);
-		else if (c.equals(Boolean.class)) return (T) Boolean.FALSE;
-		else if (c.equals(Short.class)) return (T) new Short((short)0);
-		else if (c.equals(Character.class)) return (T) new Character((char)0);
-		else if (c.equals(Integer.class)) return (T) new Integer(0);
-		else if (c.equals(Float.class)) return (T) new Float(0f);
-		else if (c.equals(Long.class)) return (T) new Long(0L);
-		else if (c.equals(Double.class)) return (T) new Double(0d);
-		return c.newInstance();
-	}
+	//TODO: add documentation.
+	private static HashSet<Class<?>> primitiveClasses = new HashSet<Class<?>>(Arrays.asList(
+			Byte.class,
+			Short.class,
+			Character.class,
+			Integer.class,
+			Float.class,
+			Long.class,
+			Double.class));
 
-	/**
-	 * 	Function used to obtain instance of the Unsafe Object, naturally this should be used unless
-	 * 	you know what you are doing.
-	 *
-	 * 	Unsafe is used in this library *only* to change the value of Boxed primitive types
-	 * 	that is necessary in order to be able to read collections of primitive types.
-	 * 	For example consider an ArrayList< Integer >, writing this object is very simple using an iterator,
-	 * 	reading on the other hand is much more complicated.
-	 * 	You might think well all i need to do is read each int from the buffer and then add it to the list,
-	 * 	but during runtime you do not know the type of the object stored in the list and thus cannot call
-	 * 	the readInt() method, and so similarly to the other implementations you must use a "pointer" to an unknown type
-	 * 	that is passed to the read method and then the method reads the data into the memory the pointer points to.
-	 * 	Since pointers are not supported in java, we use Boxed types, but boxed types are immutable that is once
-	 * 	an Integer is created its value cannot change, that is were Unsafe comes in, it used to change the value
-	 * 	of the private field holding the boxed value of the Integer.
-	 * 	If you take the metaphor of a boxed type being a pointer the use of Unsafe allows the dereference operation
-	 * 	that is if we have int* ip = 0; we can say *ip = 4; and change the value being pointed to.
-	 * @return instance of the Unsafe Object.
-	 */
-	private Unsafe getUnsafe() {
-		if (this.unsafe != null) return this.unsafe;
-		try {
-			Field field = Unsafe.class.getDeclaredField("theUnsafe");
-			field.setAccessible(true);
-			this.unsafe = (Unsafe)field.get(null);
-		} catch (NoSuchFieldException | IllegalAccessException e) {
-			e.printStackTrace();
-		}
-		return this.unsafe;
+	public static boolean isBoxedPrimitive(Class<?> c) {
+		return primitiveClasses.contains(c);
 	}
 
 	/**
@@ -537,22 +498,14 @@ public class Buffer {
 	 * @throws IllegalStateException if the buffer is in write mode.
 	 */
 	public <T> void read(T dest) throws IllegalArgumentException, IllegalStateException {
-		if (dest instanceof Byte)           unsafeReadByte((Byte)       dest);
-		else if (dest instanceof Boolean)   unsafeReadBoolean((Boolean) dest);
-		else if (dest instanceof Short)     unsafeReadShort((Short)     dest);
-		else if (dest instanceof Character) unsafeReadChar((Character)  dest);
-		else if (dest instanceof Integer)   unsafeReadInt((Integer)     dest);
-		else if (dest instanceof Float)     unsafeReadFloat((Float)     dest);
-		else if (dest instanceof Long)      unsafeReadLong((Long)       dest);
-		else if (dest instanceof Double)    unsafeReadDouble((Double)   dest);
-		else if (dest instanceof byte[])    read((byte[])   dest);
-		else if (dest instanceof boolean[]) read((boolean[])dest);
-		else if (dest instanceof short[])   read((short[])  dest);
-		else if (dest instanceof char[])    read((char[])   dest);
-		else if (dest instanceof int[])     read((int[])    dest);
-		else if (dest instanceof long[])    read((long[])   dest);
-		else if (dest instanceof float[])   read((float[])  dest);
-		else if (dest instanceof double[])  read((double[]) dest);
+		if (dest instanceof byte[])             read((byte[])   dest);
+		else if (dest instanceof boolean[])     read((boolean[])dest);
+		else if (dest instanceof short[])       read((short[])  dest);
+		else if (dest instanceof char[])        read((char[])   dest);
+		else if (dest instanceof int[])         read((int[])    dest);
+		else if (dest instanceof long[])        read((long[])   dest);
+		else if (dest instanceof float[])       read((float[])  dest);
+		else if (dest instanceof double[])      read((double[]) dest);
 		else if (dest instanceof ISerializable) read((ISerializable) dest);
 		else throw new IllegalArgumentException("trying to read an unsupported type - " + dest.getClass().getSimpleName() + ".");
 	}
@@ -561,17 +514,25 @@ public class Buffer {
 	 * Reads data form the buffer into the provided objects.
 	 * The reading is done in order from left to right, meaning that given the call read(D1, D2, ..., Dn)
 	 * the data will be read from the buffer in the order - D1 -> D2 -> ... -> Dn.
+	 * note: if you use this method with varargs passing null will effectively ignore the data
+	 * that was supposed to be read into the variable and *skip* it.
+	 * for example - a call read(D1, null, D2) when the buffer state is [S1, S2, S3] will result
+	 * in S1 being read correctly into D1 and S3 being read correctly into D2 but S2 will be lost
+	 * since the object that it was read into is null.
+	 * This effect might be useful in some scenarios but it is very dangerous,
+	 * never pass null when using varargs.
 	 * @param dest objects to read the data into.
 	 * @throws IllegalStateException if the buffer is in write mode.
 	 */
-	public void read(ISerializable... dest) throws IllegalStateException {
+	public void read(ISerializable[] dest) throws IllegalStateException {
 		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
 		for (int i = 0; i < dest.length; i++) {
 			if (dest[i] == null) {
 				try {
-					dest[i] = (ISerializable) dest.getClass().getComponentType().newInstance();
-				} catch (InstantiationException | IllegalAccessException e) {
-					e.printStackTrace();
+					dest[i] = (ISerializable) dest.getClass().getComponentType().getConstructor().newInstance();
+				} catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+					throw new IllegalArgumentException("The " + i + " argument provided was null and did not define an empty constructor, " +
+							"all readable types must define an empty constructor.");
 				}
 			}
 			dest[i].deserialize(this);
@@ -638,16 +599,21 @@ public class Buffer {
 	 * @param amount the number of objects of type T that will be read.
 	 * @param <T> the type of the data that will be read.
 	 * @throws IllegalStateException if the buffer is in write mode.
+	 * @throws IllegalArgumentException if the type provided is not supported for reading. (all readable types must have empty constructor)
 	 */
-	public <T> void read(Collection<T> dest, Class<T> type, int amount) throws IllegalStateException {
+	public <T> void read(Collection<T> dest, Class<T> type, int amount) throws IllegalStateException, IllegalArgumentException {
 		for (int i = 0; i < amount; i++) {
 			T elem;
-			try { elem = instantiate(type); }
-			catch (IllegalAccessException | InstantiationException e) {
-				throw new IllegalArgumentException("Cannot read object of type - " + type.getSimpleName() +
-						", all readable classes must have an empty constructor");
+			if (isBoxedPrimitive(type)) elem = readPrimitive(type);
+			else {
+				try { elem = type.getDeclaredConstructor().newInstance(); }
+				catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+					throw new IllegalArgumentException("Cannot read object of type - " + type.getSimpleName() +
+							", all readable classes must have an empty constructor");
+				}
+				read(elem);
 			}
-			read(elem);
+
 			dest.add(elem);
 		}
 	}
@@ -670,14 +636,21 @@ public class Buffer {
 			K key;
 			V value;
 			try {
-				key = instantiate(keyType);
-				value = instantiate(valueType);
-			} catch (IllegalAccessException | InstantiationException e) {
+				if (isBoxedPrimitive(keyType)) key = readPrimitive(keyType);
+				else {
+					key = keyType.getDeclaredConstructor().newInstance();
+					read(key);
+				}
+				if (isBoxedPrimitive(valueType)) value = readPrimitive(valueType);
+				else {
+					value = valueType.getDeclaredConstructor().newInstance();
+					read(value);
+				}
+			} catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
 				throw new IllegalArgumentException("Cannot read object of type - Map<" + keyType.getSimpleName() +
 						", " + valueType + "> , all readable classes must have an empty constructor");
 			}
-			read(key);
-			read(value);
+
 			dest.put(key, value);
 		}
 	}
@@ -698,8 +671,8 @@ public class Buffer {
 		for (int i = 0; i < amount; i++) {
 			T elem;
 			Class<T> type = deserializer.getTypeClass();
-			try { elem = instantiate(type); }
-			catch (InstantiationException | IllegalAccessException e) {
+			try { elem = type.getDeclaredConstructor().newInstance(); }
+			catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
 				throw new IllegalArgumentException("Cannot read object of type - " + type.getSimpleName() +
 						", all readable classes must have an empty constructor");
 			}
@@ -725,9 +698,9 @@ public class Buffer {
 		Class<K> keyType = keyDe.getTypeClass();
 		Class<V> valueType = valueDe.getTypeClass();
 		try {
-			key = instantiate(keyType);
-			value = instantiate(valueType);
-		} catch (IllegalAccessException | InstantiationException e) {
+			key = keyType.getDeclaredConstructor().newInstance();
+			value = valueType.getDeclaredConstructor().newInstance();
+		} catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
 			throw new IllegalArgumentException("Cannot read object of type - Map<" + keyType.getSimpleName() +
 					", " + valueType + "> , all readable classes must have an empty constructor");
 		}
@@ -737,6 +710,19 @@ public class Buffer {
 	}
 
 	//region Read Primitive
+
+	//TODO: add documentation.
+	private <T> T readPrimitive(Class<T> c) {
+		if (c.equals(Byte.class)) return (T) Byte.valueOf(readByte());
+		else if (c.equals(Boolean.class)) return (T) Boolean.valueOf(readBoolean());
+		else if (c.equals(Short.class)) return (T) Short.valueOf(readShort());
+		else if (c.equals(Character.class)) return (T) Character.valueOf(readChar());
+		else if (c.equals(Integer.class)) return (T) Integer.valueOf(readInt());
+		else if (c.equals(Float.class)) return (T) Float.valueOf(readFloat());
+		else if (c.equals(Long.class)) return (T) Long.valueOf(readLong());
+		else if (c.equals(Double.class)) return (T) Double.valueOf(readDouble());
+		throw new IllegalArgumentException("The Class - " + c.getSimpleName() + " is not primitive!");
+	}
 
 	/*
 	The methods in this section read primitive types,
@@ -753,31 +739,9 @@ public class Buffer {
 		return this.data[pointer++];
 	}
 
-	private void unsafeReadByte(Byte dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putByte(dest, unsafe.objectFieldOffset(value), readByte());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public boolean readBoolean() throws IllegalStateException {
 		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
 		return this.data[pointer++] == 1;
-	}
-
-	private void unsafeReadBoolean(Boolean dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putBoolean(dest, unsafe.objectFieldOffset(value), readBoolean());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
 	}
 
 	public short readShort() throws IllegalStateException {
@@ -788,34 +752,12 @@ public class Buffer {
 		return (short) (((b1 & 0xff) << 8) | (b0 & 0xff));
 	}
 
-	private void unsafeReadShort(Short dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putShort(dest, unsafe.objectFieldOffset(value), readShort());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public char readChar() throws IllegalStateException {
 		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
 		byte b1 = data[pointer++];
 		byte b0 = data[pointer++];
 
 		return (char) (((b1 & 0xff) << 8) | (b0 & 0xff));
-	}
-
-	private void unsafeReadChar(Character dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putChar(dest, unsafe.objectFieldOffset(value), readChar());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
 	}
 
 	public int readInt() throws IllegalStateException {
@@ -826,17 +768,6 @@ public class Buffer {
 		byte b0 = data[pointer++];
 
 		return (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
-	}
-
-	private void unsafeReadInt(Integer dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putInt(dest, unsafe.objectFieldOffset(value), readInt());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
 	}
 
 	public long readLong() throws IllegalStateException {
@@ -854,45 +785,12 @@ public class Buffer {
 				| ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
 	}
 
-	private void unsafeReadLong(Long dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putLong(dest, unsafe.objectFieldOffset(value), readLong());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public float readFloat() throws IllegalStateException {
 		return Float.intBitsToFloat(readInt());
 	}
 
-	private void unsafeReadFloat(Float dest) throws IllegalStateException {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putFloat(dest, unsafe.objectFieldOffset(value), readFloat());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public double readDouble() throws IllegalStateException {
 		return Double.longBitsToDouble(readLong());
-	}
-
-	private void unsafeReadDouble(Double dest) throws IllegalStateException  {
-		Unsafe unsafe = getUnsafe();
-		Field value;
-		try {
-			value = dest.getClass().getDeclaredField("value");
-			unsafe.putDouble(dest, unsafe.objectFieldOffset(value), readDouble());
-		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
-		}
 	}
 
 	//region Read Primitive Array

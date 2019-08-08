@@ -1,6 +1,7 @@
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Player implements ISerializable, Comparable<Player> {
+public class Player implements ISerializable, Comparable<Player>, Serializable {
 
     public int playerNum;
 

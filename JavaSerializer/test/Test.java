@@ -1,8 +1,11 @@
+import com.sun.jdi.IntegerType;
+
+import java.io.*;
+import java.lang.ref.Reference;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Test {
-
-
     public static void main(String[] args) {
         if (!testPrimitive()) System.out.println("failed primitive test.");
         else if (!testPrimitiveArray()) System.out.println("failed primitive array test.");
@@ -10,6 +13,8 @@ public class Test {
         else if (!testCollections()) System.out.println("failed collections test.");
         else if (!testMaps()) System.out.println("failed maps test.");
         else System.out.println("all tests passed.");
+
+        benchMark();
     }
 
     private static boolean testPrimitive() {
@@ -244,5 +249,55 @@ public class Test {
         return res;
     }
 
+    private static void benchMark() {
+        int length = 1000000;
+
+        double[] p = new double[length];
+        double[] g = new double[length];
+
+        Random r = new Random(System.nanoTime());
+
+        for (int i = 0; i < length; i++) {
+            p[i] = (r.nextInt(Integer.MAX_VALUE));
+            g[i] = (r.nextInt(Integer.MAX_VALUE));
+        }
+
+        FileOutputStream ofs = null;
+        FileOutputStream bfs = null;
+
+        Timer timer = new Timer();
+        timer.start();
+        try {
+
+            ofs = new FileOutputStream("oos.test");
+            bfs = new FileOutputStream("buf.test");
+
+            ObjectOutputStream oos = new ObjectOutputStream(ofs);
+            oos.writeObject(p);
+            oos.writeObject(g); 
+            System.out.println("oos: " + timer.stop());
+
+            timer.start();
+            Buffer buf = new Buffer(Buffer.TYPE.DYNAMIC);
+            buf.write(p);
+            buf.write(g);
+            bfs.write(buf.getBytes());
+            System.out.println("buf: " + timer.stop());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private static class Timer {
+
+        private long startTime = System.nanoTime();
+
+        public void start() { startTime = System.nanoTime(); }
+
+        public double stop() { return (double)(System.nanoTime() - startTime) / 1000000; }
+
+    }
 
 }

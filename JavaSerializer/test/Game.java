@@ -1,7 +1,8 @@
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class Game  implements ISerializable, Comparable<Game> {
+public class Game  implements ISerializable, Comparable<Game>, Serializable {
 
     private int width, height;
     private Player player;
