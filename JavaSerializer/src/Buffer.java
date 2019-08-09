@@ -1,3 +1,5 @@
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -85,6 +87,38 @@ public class Buffer {
 	 */
 	public Buffer(TYPE type) {
 		this(type, 32);
+	}
+
+	/**
+	 * Constructs Buffer from an InputStream and writes 'count' bytes from the stream to the buffer.
+	 * The created buffer will be STATIC and in READ mode (read/write pointer pointing to 0).
+	 * note: if the number of bytes requested from the stream ('count') is greater than the available
+	 * bytes in the stream, the stream will be read to its end.
+	 * @param stream the stream the buffer will be created from.
+	 * @param count the number of bytes that should be read from the stream.
+	 * @throws IOException if there is a problem reading from the stream.
+	 */
+	public Buffer(InputStream stream, int count) throws IOException {
+		int actualCount = Math.min(count, stream.available());
+		this.data = new byte[actualCount];
+		this.type = TYPE.STATIC;
+		this.mode = MODE.READ;
+		this.pointer = 0;
+		if (stream.read(this.data) != data.length) throw new IOException("problem reading from stream, bytes read and available do not match");
+	}
+
+	/**
+	 * Constructs Buffer from an InputStream and writes all the data in the stream into the buffer.
+	 * The created buffer will be STATIC and in READ mode (read/write pointer pointing to 0).
+	 * @param stream the stream the buffer will be created from.
+	 * @throws IOException if there is a problem reading from the stream.
+	 */
+	public Buffer(InputStream stream) throws IOException {
+		this.data = new byte[stream.available()];
+		this.type = TYPE.STATIC;
+		this.mode = MODE.READ;
+		this.pointer = 0;
+		if (stream.read(this.data) != data.length) throw new IOException("problem reading from stream, bytes read and available do not match");
 	}
 
 	/**
@@ -227,6 +261,7 @@ public class Buffer {
 		else if (data instanceof Iterable) writeIterable((Iterable) data);
 		else if (data instanceof Map) writeMap((Map) data);
 		else if (data instanceof ISerializable) write((ISerializable) data);
+		else if (data instanceof ISerializable[]) write((ISerializable[]) data);
 		else throw new IllegalArgumentException("trying to write an unsupported type - " + data.getClass().getSimpleName() + ".");
 	}
 
@@ -405,6 +440,9 @@ public class Buffer {
 
 	//region Write Primitive Array
 
+	//TODO: somehow inline the calls to the primitive write functions in order to reduce function calls, mainly calls to alloc_buffer.
+
+
 	public void write(byte[] data) throws IllegalStateException {
 		for (byte b : data) {
 			write(b);
@@ -461,7 +499,18 @@ public class Buffer {
 
 	//region Read
 
-	//TODO: add documentation.
+	/*
+	This method and the hash set it uses are simply utilities in order to have a simple way
+	to know if an object is a Boxed Primitive type i.e Integer, Double, Byte,...
+	This is useful in order to decide how to treat objects inside collections (and maps),
+	if the object is of a "primitive type" (Boxed types being the closest you can get inside collections)
+	we do not need to initialize the object and then read into it, we can simply read the primitive from the buffer
+	and then box it.
+	 */
+	private static boolean isBoxedPrimitive(Class<?> c) {
+		return primitiveClasses.contains(c);
+	}
+
 	private static HashSet<Class<?>> primitiveClasses = new HashSet<Class<?>>(Arrays.asList(
 			Byte.class,
 			Short.class,
@@ -471,9 +520,6 @@ public class Buffer {
 			Long.class,
 			Double.class));
 
-	public static boolean isBoxedPrimitive(Class<?> c) {
-		return primitiveClasses.contains(c);
-	}
 
 	/**
 	 * Reads data form the buffer into the provided objects.
@@ -524,7 +570,7 @@ public class Buffer {
 	 * @param dest objects to read the data into.
 	 * @throws IllegalStateException if the buffer is in write mode.
 	 */
-	public void read(ISerializable[] dest) throws IllegalStateException {
+	public void read(ISerializable... dest) throws IllegalStateException {
 		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
 		for (int i = 0; i < dest.length; i++) {
 			if (dest[i] == null) {
@@ -711,7 +757,12 @@ public class Buffer {
 
 	//region Read Primitive
 
-	//TODO: add documentation.
+	/*
+	This method is used internally in order to read primitive types into their boxed form,
+	it can be thought of as a generic wrapper to all the other primitive read methods,
+	and in order to decide which one to invoke we receive a Class object and decide according
+	to it for example if the Class represents an Integer we use readInt.
+	 */
 	private <T> T readPrimitive(Class<T> c) {
 		if (c.equals(Byte.class)) return (T) Byte.valueOf(readByte());
 		else if (c.equals(Boolean.class)) return (T) Boolean.valueOf(readBoolean());

@@ -1,18 +1,25 @@
-import com.sun.jdi.IntegerType;
-
 import java.io.*;
-import java.lang.ref.Reference;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Test {
+
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_BLACK = "\u001B[30m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_PURPLE = "\u001B[35m";
+    public static final String ANSI_CYAN = "\u001B[36m";
+    public static final String ANSI_WHITE = "\u001B[37m";
+
     public static void main(String[] args) {
-        if (!testPrimitive()) System.out.println("failed primitive test.");
-        else if (!testPrimitiveArray()) System.out.println("failed primitive array test.");
-        else if (!testSerializable()) System.out.println("failed serializable test.");
-        else if (!testCollections()) System.out.println("failed collections test.");
-        else if (!testMaps()) System.out.println("failed maps test.");
-        else System.out.println("all tests passed.");
+        if (!testPrimitive()) System.out.println(ANSI_RED + "failed primitive test." + ANSI_RESET);
+        else if (!testPrimitiveArray()) System.out.println(ANSI_RED + "failed primitive array test." + ANSI_RESET);
+        else if (!testSerializable()) System.out.println(ANSI_RED + "failed serializable test." + ANSI_RESET);
+        else if (!testCollections()) System.out.println(ANSI_RED + "failed collections test." + ANSI_RESET);
+        else if (!testMaps()) System.out.println(ANSI_RED + "failed maps test." + ANSI_RESET);
+        else System.out.println(ANSI_GREEN + "all tests passed." + ANSI_RESET);
 
         benchMark();
     }
@@ -250,44 +257,135 @@ public class Test {
     }
 
     private static void benchMark() {
-        int length = 1000000;
+        Random r;
 
-        double[] p = new double[length];
-        double[] g = new double[length];
+        int[] ints = new int[1000000];
+        r = new Random();
+        for (int i = 0; i < ints.length; i++) ints[i] = r.nextInt(Integer.MAX_VALUE);
+        benchmarkWrite(ints, 100, "int[] with 1000000 elements");
 
-        Random r = new Random(System.nanoTime());
+        double[] doubles = new double[1000000];
+        r = new Random();
+        for (int i = 0; i < doubles.length; i++) doubles[i] = r.nextDouble();
+        benchmarkWrite(doubles, 100, "double[] with 1000000 elements");
 
-        for (int i = 0; i < length; i++) {
-            p[i] = (r.nextInt(Integer.MAX_VALUE));
-            g[i] = (r.nextInt(Integer.MAX_VALUE));
+        int[] lInts = new int[10000000];
+        r = new Random();
+        for (int i = 0; i < ints.length; i++) ints[i] = r.nextInt(Integer.MAX_VALUE);
+        benchmarkWrite(lInts, 10, "int[] with 10000000 elements");
+
+        double[] ldoubles = new double[10000000];
+        r = new Random();
+        for (int i = 0; i < ldoubles.length; i++) ldoubles[i] = r.nextDouble();
+        benchmarkWrite(ldoubles, 10, "double[] with 10000000 elements");
+
+        Player[] players = new Player[1000];
+        r = new Random();
+        for (int i = 0; i < players.length; i++) players[i] = new Player(r.nextInt(Integer.MAX_VALUE));
+        benchmarkWrite(players, 10, "Player[] with 1000 elements");
+
+        Player[] lplayers = new Player[100000];
+        r = new Random();
+        for (int i = 0; i < lplayers.length; i++) lplayers[i] = new Player(r.nextInt(Integer.MAX_VALUE));
+        benchmarkWrite(lplayers, 10, "Player[] with 100000 elements");
+
+        ArrayList<Integer> Aintegers = new ArrayList<>();
+        r = new Random();
+        for (int i = 0; i < 1000; i++) Aintegers.add(r.nextInt(Integer.MAX_VALUE));
+        benchmarkWrite(Aintegers, 100, "ArrayList<Integer> with 1000 elements");
+
+        ArrayList<Player> Aplayers = new ArrayList<>();
+        r = new Random();
+        for (int i = 0; i < 1000; i++) Aplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
+        benchmarkWrite(Aplayers, 100, "ArrayList<Player> with 1000 elements");
+
+        ArrayList<Integer> ALintegers = new ArrayList<>();
+        r = new Random();
+        for (int i = 0; i < 100000; i++) ALintegers.add(r.nextInt(Integer.MAX_VALUE));
+        benchmarkWrite(ALintegers, 10, "ArrayList<Integer> with 100000 elements");
+
+        ArrayList<Player> ALplayers = new ArrayList<>();
+        r = new Random();
+        for (int i = 0; i < 100000; i++) ALplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
+        benchmarkWrite(ALplayers, 10, "ArrayList<Player> with 100000 elements");
+
+        HashMap<Player, Game> pgMap = new HashMap<>();
+        r = new Random();
+        for (int i = 0; i < 1000; i++) pgMap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
+        benchmarkWrite(pgMap, 100, "HashMap<Player, Game> with 1000 mappings");
+
+        HashMap<Player, Game> LpgMap = new HashMap<>();
+        r = new Random();
+        for (int i = 0; i < 10000; i++) LpgMap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
+        benchmarkWrite(LpgMap, 10, "HashMap<Player, Game> with 10000 mappings");
+    }
+
+    private static <T> void benchmarkWrite(T data, int iterations, String description) {
+        System.out.println("running Write benchmark on " + ANSI_YELLOW +  description + ANSI_RESET + " (" + iterations + " iterations):");
+        double minTimeOOS = Double.MAX_VALUE, maxTimeOOS = 0, avgTimeOOS = 0;
+        double minTimeBUF = Double.MAX_VALUE, maxTimeBUF = 0, avgTimeBUF = 0;
+        long avgSizeBUF = 0, avgSizeOOS = 0;
+
+        for (int i = 0; i < iterations; i++) {
+            try {
+                File bufFile = new File("buf.test");
+                if (!bufFile.createNewFile()) throw new Exception("cannot create new File");
+                File oosFile = new File("oos.test");
+                if (!oosFile.createNewFile()) throw new Exception("cannot create new File");
+                Timer timer = new Timer();
+                double res;
+
+                FileOutputStream bufFOS = new FileOutputStream(bufFile);
+                Buffer buf = new Buffer(Buffer.TYPE.DYNAMIC);
+                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(oosFile));
+
+                long bufSize = 0, oosSize = 0;
+
+                //write buffer
+                timer.start();
+                buf.write(data);
+                bufFOS.write(buf.getBytes());
+                bufFOS.flush();
+                bufFOS.close();
+                res = timer.stop();
+                minTimeBUF = Math.min(res, minTimeBUF);
+                maxTimeBUF = Math.max(res, maxTimeBUF);
+                avgTimeBUF = (avgTimeBUF * i + res) / (i + 1);
+                bufSize = bufFile.length();
+                avgSizeBUF = (avgSizeBUF * i + bufSize) / (i + 1);
+
+
+
+                // write object stream
+                timer.start();
+                oos.writeObject(data);
+                oos.close();
+                res = timer.stop();
+                minTimeOOS = Math.min(res, minTimeOOS);
+                maxTimeOOS = Math.max(res, maxTimeOOS);
+                avgTimeOOS = (avgTimeOOS * i + res) / (i + 1);
+                oosSize = oosFile.length();
+                avgSizeOOS = (avgSizeOOS * i + oosSize) / (i + 1);
+
+
+
+                if (!bufFile.delete())
+                    throw new Exception("cannot delete new File");
+                if (!oosFile.delete())
+                    throw new Exception("cannot delete new File");
+            }
+            catch (Exception e) { e.printStackTrace(); }
         }
 
-        FileOutputStream ofs = null;
-        FileOutputStream bfs = null;
+        double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
+        double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        Timer timer = new Timer();
-        timer.start();
-        try {
-
-            ofs = new FileOutputStream("oos.test");
-            bfs = new FileOutputStream("buf.test");
-
-            ObjectOutputStream oos = new ObjectOutputStream(ofs);
-            oos.writeObject(p);
-            oos.writeObject(g); 
-            System.out.println("oos: " + timer.stop());
-
-            timer.start();
-            Buffer buf = new Buffer(Buffer.TYPE.DYNAMIC);
-            buf.write(p);
-            buf.write(g);
-            bfs.write(buf.getBytes());
-            System.out.println("buf: " + timer.stop());
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+                "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
+                ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
+                "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
+                ANSI_BLUE + "average file size improvement - " + sizeImprove + "%" + ANSI_RESET);
     }
 
     private static class Timer {
