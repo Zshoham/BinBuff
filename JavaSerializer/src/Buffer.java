@@ -383,8 +383,9 @@ public class Buffer {
 
 	public void write(boolean data) throws IllegalStateException {
 		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
-		if (data) write((byte) 1);
-		else write((byte) 0);
+		alloc_buffer(1);
+		if (data) this.data[pointer++] = 1;
+		else this.data[pointer++] = 0;
 	}
 
 	public void write(short data) throws IllegalStateException {
@@ -427,14 +428,24 @@ public class Buffer {
 		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
 		this.alloc_buffer(4);
 		int intVal = Float.floatToIntBits(data);
-		this.write(intVal);
+		this.data[pointer++] = (byte) (intVal >> 24);
+		this.data[pointer++] = (byte) (intVal >> 16);
+		this.data[pointer++] = (byte) (intVal >> 8);
+		this.data[pointer++] = (byte) (intVal & 0xff);
 	}
 
 	public void write(double data) throws IllegalStateException {
 		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
 		this.alloc_buffer(8);
 		long longVal = Double.doubleToLongBits(data);
-		this.write(longVal);
+		this.data[pointer++] = (byte) (longVal >> 56);
+		this.data[pointer++] = (byte) (longVal >> 48);
+		this.data[pointer++] = (byte) (longVal >> 40);
+		this.data[pointer++] = (byte) (longVal >> 32);
+		this.data[pointer++] = (byte) (longVal >> 24);
+		this.data[pointer++] = (byte) (longVal >> 16);
+		this.data[pointer++] = (byte) (longVal >> 8);
+		this.data[pointer++] = (byte) (longVal & 0xff);
 	}
 
 
@@ -444,50 +455,91 @@ public class Buffer {
 
 
 	public void write(byte[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		alloc_buffer(data.length);
 		for (byte b : data) {
-			write(b);
+			this.data[pointer++] = b;
 		}
 	}
 
 	public void write(boolean[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		alloc_buffer(data.length);
 		for(boolean b: data) {
-			write(b);
+			if (b) this.data[pointer++] = 1;
+			else this.data[pointer++] = 0;
 		}
 	}
 
 	public void write(short[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		this.alloc_buffer(2 * data.length);
 		for (short s : data) {
-			write(s);
+			this.data[pointer++] = (byte) (s >> 8);
+			this.data[pointer++] = (byte) (s & 0xff);
 		}
 	}
 
 	public void write(char[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		this.alloc_buffer(2 * data.length);
 		for (char c : data) {
-			write(c);
+			this.data[pointer++] = (byte) (c >> 8);
+			this.data[pointer++] = (byte) (c & 0xff);
 		}
 	}
 
 	public void write(int[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		this.alloc_buffer(4 * data.length);
 		for (int i : data) {
-			write(i);
+			this.data[pointer++] = (byte) (i >> 24);
+			this.data[pointer++] = (byte) (i >> 16);
+			this.data[pointer++] = (byte) (i >> 8);
+			this.data[pointer++] = (byte) (i & 0xff);
 		}
 	}
 
 	public void write(long[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		this.alloc_buffer(8 * data.length);
 		for (long l : data) {
-			write(l);
+			this.data[pointer++] = (byte) (l >> 56);
+			this.data[pointer++] = (byte) (l >> 48);
+			this.data[pointer++] = (byte) (l >> 40);
+			this.data[pointer++] = (byte) (l >> 32);
+			this.data[pointer++] = (byte) (l >> 24);
+			this.data[pointer++] = (byte) (l >> 16);
+			this.data[pointer++] = (byte) (l >> 8);
+			this.data[pointer++] = (byte) (l & 0xff);
 		}
 	}
 
 	public void write(float[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		this.alloc_buffer(4 * data.length);
 		for (float f : data) {
-			write(f);
+			int intVal = Float.floatToIntBits(f);
+			this.data[pointer++] = (byte) (intVal >> 24);
+			this.data[pointer++] = (byte) (intVal >> 16);
+			this.data[pointer++] = (byte) (intVal >> 8);
+			this.data[pointer++] = (byte) (intVal & 0xff);
 		}
 	}
 
 	public void write(double[] data) throws IllegalStateException {
+		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
+		this.alloc_buffer(8 * data.length);
 		for (double d : data) {
-			write(d);
+			long longVal = Double.doubleToLongBits(d);
+			this.data[pointer++] = (byte) (longVal >> 56);
+			this.data[pointer++] = (byte) (longVal >> 48);
+			this.data[pointer++] = (byte) (longVal >> 40);
+			this.data[pointer++] = (byte) (longVal >> 32);
+			this.data[pointer++] = (byte) (longVal >> 24);
+			this.data[pointer++] = (byte) (longVal >> 16);
+			this.data[pointer++] = (byte) (longVal >> 8);
+			this.data[pointer++] = (byte) (longVal & 0xff);
 		}
 	}
 

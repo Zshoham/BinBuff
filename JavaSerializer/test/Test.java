@@ -3,16 +3,19 @@ import java.util.*;
 
 public class Test {
 
-    public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_BLACK = "\u001B[30m";
-    public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_BLUE = "\u001B[34m";
-    public static final String ANSI_PURPLE = "\u001B[35m";
-    public static final String ANSI_CYAN = "\u001B[36m";
-    public static final String ANSI_WHITE = "\u001B[37m";
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String ANSI_BLACK = "\u001B[30m";
+    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_GREEN = "\u001B[32m";
+    private static final String ANSI_YELLOW = "\u001B[33m";
+    private static final String ANSI_BLUE = "\u001B[34m";
+    private static final String ANSI_PURPLE = "\u001B[35m";
+    private static final String ANSI_CYAN = "\u001B[36m";
+    private static final String ANSI_WHITE = "\u001B[37m";
 
+   private static final byte BENCHMARK_OPTION = 0;    // all
+                                                //1;      // final
+                                                //2;    //overall
     public static void main(String[] args) {
         if (!testPrimitive()) System.out.println(ANSI_RED + "failed primitive test." + ANSI_RESET);
         else if (!testPrimitiveArray()) System.out.println(ANSI_RED + "failed primitive array test." + ANSI_RESET);
@@ -258,70 +261,228 @@ public class Test {
 
     private static void benchMark() {
         Random r;
+        LinkedHashMap<String, Double> memoryResults = new LinkedHashMap<>();
+        LinkedHashMap<String, Double> diskResults = new LinkedHashMap<>();
 
-        int[] ints = new int[1000000];
-        r = new Random();
-        for (int i = 0; i < ints.length; i++) ints[i] = r.nextInt(Integer.MAX_VALUE);
-        benchmarkWrite(ints, 100, "int[] with 1000000 elements");
+        double res = 0;
+        String description = "";
+        double overallAvg = 0;
+        int resCounter = 0;
 
-        double[] doubles = new double[1000000];
-        r = new Random();
-        for (int i = 0; i < doubles.length; i++) doubles[i] = r.nextDouble();
-        benchmarkWrite(doubles, 100, "double[] with 1000000 elements");
+        {
+            System.out.println(ANSI_CYAN + "running in memory write benchmarks..." + ANSI_RESET);
 
-        int[] lInts = new int[10000000];
-        r = new Random();
-        for (int i = 0; i < ints.length; i++) ints[i] = r.nextInt(Integer.MAX_VALUE);
-        benchmarkWrite(lInts, 10, "int[] with 10000000 elements");
+            description = "int[] with 1000000 elements";
+            int[] ints = new int[1000000];
+            r = new Random();
+            for (int i = 0; i < ints.length; i++) ints[i] = r.nextInt(Integer.MAX_VALUE);
+            res = benchmarkWriteInMemory(ints, 100, description);
+            memoryResults.put(description, res);
 
-        double[] ldoubles = new double[10000000];
-        r = new Random();
-        for (int i = 0; i < ldoubles.length; i++) ldoubles[i] = r.nextDouble();
-        benchmarkWrite(ldoubles, 10, "double[] with 10000000 elements");
 
-        Player[] players = new Player[1000];
-        r = new Random();
-        for (int i = 0; i < players.length; i++) players[i] = new Player(r.nextInt(Integer.MAX_VALUE));
-        benchmarkWrite(players, 10, "Player[] with 1000 elements");
+            description = "double[] with 1000000 elements";
+            double[] doubles = new double[1000000];
+            r = new Random();
+            for (int i = 0; i < doubles.length; i++) doubles[i] = r.nextDouble();
+            res = benchmarkWriteInMemory(doubles, 100, description);
+            memoryResults.put(description, res);
 
-        Player[] lplayers = new Player[100000];
-        r = new Random();
-        for (int i = 0; i < lplayers.length; i++) lplayers[i] = new Player(r.nextInt(Integer.MAX_VALUE));
-        benchmarkWrite(lplayers, 10, "Player[] with 100000 elements");
+            description = "int[] with 10000000 elements";
+            int[] lInts = new int[10000000];
+            r = new Random();
+            for (int i = 0; i < lInts.length; i++) lInts[i] = r.nextInt(Integer.MAX_VALUE);
+            res = benchmarkWriteInMemory(lInts, 100, description);
+            memoryResults.put(description, res);
 
-        ArrayList<Integer> Aintegers = new ArrayList<>();
-        r = new Random();
-        for (int i = 0; i < 1000; i++) Aintegers.add(r.nextInt(Integer.MAX_VALUE));
-        benchmarkWrite(Aintegers, 100, "ArrayList<Integer> with 1000 elements");
+            description = "double[] with 10000000 elements";
+            double[] ldoubles = new double[10000000];
+            r = new Random();
+            for (int i = 0; i < ldoubles.length; i++) ldoubles[i] = r.nextDouble();
+            res = benchmarkWriteInMemory(ldoubles, 100, description);
+            memoryResults.put(description, res);
 
-        ArrayList<Player> Aplayers = new ArrayList<>();
-        r = new Random();
-        for (int i = 0; i < 1000; i++) Aplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
-        benchmarkWrite(Aplayers, 100, "ArrayList<Player> with 1000 elements");
+            description = "Player[] with 1000 elements";
+            Player[] players = new Player[1000];
+            r = new Random();
+            for (int i = 0; i < players.length; i++) players[i] = new Player(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteInMemory(players, 100, description);
+            memoryResults.put(description, res);
 
-        ArrayList<Integer> ALintegers = new ArrayList<>();
-        r = new Random();
-        for (int i = 0; i < 100000; i++) ALintegers.add(r.nextInt(Integer.MAX_VALUE));
-        benchmarkWrite(ALintegers, 10, "ArrayList<Integer> with 100000 elements");
+            description = "Player[] with 100000 elements";
+            Player[] lplayers = new Player[100000];
+            r = new Random();
+            for (int i = 0; i < lplayers.length; i++) lplayers[i] = new Player(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteInMemory(lplayers, 100, description);
+            memoryResults.put(description, res);
 
-        ArrayList<Player> ALplayers = new ArrayList<>();
-        r = new Random();
-        for (int i = 0; i < 100000; i++) ALplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
-        benchmarkWrite(ALplayers, 10, "ArrayList<Player> with 100000 elements");
+            description = "ArrayList<Integer> with 1000 elements";
+            ArrayList<Integer> Aintegers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 1000; i++) Aintegers.add(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteInMemory(Aintegers, 100, description);
+            memoryResults.put(description, res);
 
-        HashMap<Player, Game> pgMap = new HashMap<>();
-        r = new Random();
-        for (int i = 0; i < 1000; i++) pgMap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
-        benchmarkWrite(pgMap, 100, "HashMap<Player, Game> with 1000 mappings");
+            description = "ArrayList<Player> with 1000 elements";
+            ArrayList<Player> Aplayers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 1000; i++) Aplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
+            res = benchmarkWriteInMemory(Aplayers, 100, description);
+            memoryResults.put(description, res);
 
-        HashMap<Player, Game> LpgMap = new HashMap<>();
-        r = new Random();
-        for (int i = 0; i < 10000; i++) LpgMap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
-        benchmarkWrite(LpgMap, 10, "HashMap<Player, Game> with 10000 mappings");
+            description = "ArrayList<Integer> with 100000 elements";
+            ArrayList<Integer> ALintegers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 100000; i++) ALintegers.add(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteInMemory(ALintegers, 100, description);
+            memoryResults.put(description, res);
+
+            description = "ArrayList<Player> with 100000 elements";
+            ArrayList<Player> ALplayers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 100000; i++) ALplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
+            res = benchmarkWriteInMemory(ALplayers, 100, description);
+            memoryResults.put(description, res);
+
+            description = "HashMap<Player, Game> with 1000 mappings";
+            HashMap<Player, Game> pgMap = new HashMap<>();
+            r = new Random();
+            for (int i = 0; i < 1000; i++) pgMap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
+            res = benchmarkWriteInMemory(pgMap, 100, description);
+            memoryResults.put(description, res);
+
+            description = "HashMap<Player, Game> with 10000 mappings";
+            HashMap<Player, Game> PGmap = new HashMap<>();
+            r = new Random();
+            for (int i = 0; i < 10000; i++) PGmap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
+            res = benchmarkWriteInMemory(PGmap, 100, description);
+            memoryResults.put(description, res);
+
+            description = "HashMap<Integer, Player> with 100000 mappings";
+            HashMap<Integer, Player> IPmap = new HashMap<>();
+            r = new Random();
+            for (int i = 0; i < 100000; i++) IPmap.put(r.nextInt(Integer.MAX_VALUE), new Player(r.nextInt(Integer.MAX_VALUE)));
+            res = benchmarkWriteInMemory(IPmap, 100, description);
+            memoryResults.put(description, res);
+
+            System.out.println(ANSI_CYAN + "final results:" + ANSI_RESET);
+
+            for (HashMap.Entry<String, Double> e : memoryResults.entrySet()) {
+                if (BENCHMARK_OPTION <= 1) System.out.println(ANSI_YELLOW + e.getKey() + ANSI_RESET + " : " + ANSI_BLUE + e.getValue() + "%" + ANSI_RESET);
+                overallAvg = (overallAvg * resCounter + e.getValue()) / (resCounter + 1);
+            }
+
+            if(BENCHMARK_OPTION <= 2) System.out.println(ANSI_RED + "overall average improvement - " + overallAvg + "%" + ANSI_RESET);
+        }
+
+        {
+            System.out.println(ANSI_CYAN + "running on disk write benchmarks..." + ANSI_RESET);
+
+            description = "int[] with 1000000 elements";
+            int[] ints = new int[1000000];
+            r = new Random();
+            for (int i = 0; i < ints.length; i++) ints[i] = r.nextInt(Integer.MAX_VALUE);
+            res = benchmarkWriteOnDisk(ints, 100, description);
+            diskResults.put(description, res);
+
+            description = "double[] with 1000000 elements";
+            double[] doubles = new double[1000000];
+            r = new Random();
+            for (int i = 0; i < doubles.length; i++) doubles[i] = r.nextDouble();
+            res = benchmarkWriteOnDisk(doubles, 100, description);
+            diskResults.put(description, res);
+
+            description = "int[] with 10000000 elements";
+            int[] lInts = new int[10000000];
+            r = new Random();
+            for (int i = 0; i < lInts.length; i++) lInts[i] = r.nextInt(Integer.MAX_VALUE);
+            res = benchmarkWriteOnDisk(lInts, 100, description);
+            diskResults.put(description, res);
+
+            description = "double[] with 10000000 elements";
+            double[] ldoubles = new double[10000000];
+            r = new Random();
+            for (int i = 0; i < ldoubles.length; i++) ldoubles[i] = r.nextDouble();
+            res = benchmarkWriteOnDisk(ldoubles, 100, description);
+            diskResults.put(description, res);
+
+            description = "Player[] with 1000 elements";
+            Player[] players = new Player[1000];
+            r = new Random();
+            for (int i = 0; i < players.length; i++) players[i] = new Player(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteOnDisk(players, 100, description);
+            diskResults.put(description, res);
+
+            description = "Player[] with 100000 elements";
+            Player[] lplayers = new Player[100000];
+            r = new Random();
+            for (int i = 0; i < lplayers.length; i++) lplayers[i] = new Player(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteOnDisk(lplayers, 100, description);
+            diskResults.put(description, res);
+
+            description = "ArrayList<Integer> with 1000 elements";
+            ArrayList<Integer> Aintegers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 1000; i++) Aintegers.add(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteOnDisk(Aintegers, 100, description);
+            diskResults.put(description, res);
+
+            description = "ArrayList<Player> with 1000 elements";
+            ArrayList<Player> Aplayers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 1000; i++) Aplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
+            res = benchmarkWriteOnDisk(Aplayers, 100, description);
+            diskResults.put(description, res);
+
+            description = "ArrayList<Integer> with 100000 elements";
+            ArrayList<Integer> ALintegers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 100000; i++) ALintegers.add(r.nextInt(Integer.MAX_VALUE));
+            res = benchmarkWriteOnDisk(ALintegers, 100, description);
+            diskResults.put(description, res);
+
+            description = "ArrayList<Player> with 100000 elements";
+            ArrayList<Player> ALplayers = new ArrayList<>();
+            r = new Random();
+            for (int i = 0; i < 100000; i++) ALplayers.add(new Player(r.nextInt(Integer.MAX_VALUE)));
+            res = benchmarkWriteOnDisk(ALplayers, 100, description);
+            diskResults.put(description, res);
+
+            description = "HashMap<Player, Game> with 1000 mappings";
+            HashMap<Player, Game> pgMap = new HashMap<>();
+            r = new Random();
+            for (int i = 0; i < 1000; i++) pgMap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
+            res = benchmarkWriteOnDisk(pgMap, 100, description);
+            diskResults.put(description, res);
+
+            description = "HashMap<Player, Game> with 10000 mappings";
+            HashMap<Player, Game> PGmap = new HashMap<>();
+            r = new Random();
+            for (int i = 0; i < 10000; i++) PGmap.put(new Player(r.nextInt(Integer.MAX_VALUE)), new Game(1280, 1080, r.nextInt(100)));
+            res = benchmarkWriteOnDisk(PGmap, 100, description);
+            diskResults.put(description, res);
+
+            description = "HashMap<Integer, Player> with 100000 mappings";
+            HashMap<Integer, Player> IPmap = new HashMap<>();
+            r = new Random();
+            for (int i = 0; i < 100000; i++) IPmap.put(r.nextInt(Integer.MAX_VALUE), new Player(r.nextInt(Integer.MAX_VALUE)));
+            res = benchmarkWriteOnDisk(IPmap, 100, description);
+            diskResults.put(description, res);
+
+            System.out.println(ANSI_CYAN + "final results:" + ANSI_RESET);
+
+            for (HashMap.Entry<String, Double> e : diskResults.entrySet()) {
+                if(BENCHMARK_OPTION <= 1) System.out.println(ANSI_YELLOW + e.getKey() + ANSI_RESET + " : " + ANSI_BLUE + e.getValue() + "%" + ANSI_RESET);
+                overallAvg = (overallAvg * resCounter + e.getValue()) / (resCounter + 1);
+            }
+
+            if(BENCHMARK_OPTION <= 2) System.out.println(ANSI_RED + "overall average improvement - " + overallAvg + "%" + ANSI_RESET);
+        }
+
+
     }
 
-    private static <T> void benchmarkWrite(T data, int iterations, String description) {
-        System.out.println("running Write benchmark on " + ANSI_YELLOW +  description + ANSI_RESET + " (" + iterations + " iterations):");
+    private static <T> double benchmarkWriteOnDisk(T data, int iterations, String description) {
+        System.out.println("running Write benchmark on " + ANSI_YELLOW +  description + ANSI_RESET + " (" + iterations + " iterations)...");
         double minTimeOOS = Double.MAX_VALUE, maxTimeOOS = 0, avgTimeOOS = 0;
         double minTimeBUF = Double.MAX_VALUE, maxTimeBUF = 0, avgTimeBUF = 0;
         long avgSizeBUF = 0, avgSizeOOS = 0;
@@ -336,8 +497,11 @@ public class Test {
                 double res;
 
                 FileOutputStream bufFOS = new FileOutputStream(bufFile);
+                FileOutputStream oosFOS = new FileOutputStream(oosFile);
                 Buffer buf = new Buffer(Buffer.TYPE.DYNAMIC);
-                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(oosFile));
+                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(byteStream);
+                byte[] oosBytes;
 
                 long bufSize = 0, oosSize = 0;
 
@@ -359,7 +523,11 @@ public class Test {
                 // write object stream
                 timer.start();
                 oos.writeObject(data);
+                oosBytes = byteStream.toByteArray();
+                oosFOS.write(oosBytes);
+                oosFOS.flush();
                 oos.close();
+                oosFOS.close();
                 res = timer.stop();
                 minTimeOOS = Math.min(res, minTimeOOS);
                 maxTimeOOS = Math.max(res, maxTimeOOS);
@@ -380,13 +548,80 @@ public class Test {
         double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
                 "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
                 "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
                 ANSI_BLUE + "average file size improvement - " + sizeImprove + "%" + ANSI_RESET);
+
+        return 0.8 * runTimeImprove + 0.2 * sizeImprove;
     }
+
+    private static <T> double benchmarkWriteInMemory(T data, int iterations, String description) {
+        System.out.println("running Write benchmark on " + ANSI_YELLOW +  description + ANSI_RESET + " (" + iterations + " iterations)...");
+        double minTimeOOS = Double.MAX_VALUE, maxTimeOOS = 0, avgTimeOOS = 0;
+        double minTimeBUF = Double.MAX_VALUE, maxTimeBUF = 0, avgTimeBUF = 0;
+        long avgSizeBUF = 0, avgSizeOOS = 0;
+
+        for (int i = 0; i < iterations; i++) {
+            try {
+                byte[] bufBytes, oosBytes;
+                Timer timer = new Timer();
+                double res;
+
+                Buffer buf = new Buffer(Buffer.TYPE.DYNAMIC);
+                ByteArrayOutputStream bytesStream = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bytesStream);
+
+                long bufSize = 0, oosSize = 0;
+
+                //write buffer
+                timer.start();
+                buf.write(data);
+                bufBytes = buf.getBytes();
+                res = timer.stop();
+
+                //buffer statistics
+                minTimeBUF = Math.min(res, minTimeBUF);
+                maxTimeBUF = Math.max(res, maxTimeBUF);
+                avgTimeBUF = (avgTimeBUF * i + res) / (i + 1);
+                bufSize = bufBytes.length;
+                avgSizeBUF = (avgSizeBUF * i + bufSize) / (i + 1);
+
+
+
+                // write object stream
+                timer.start();
+                oos.writeObject(data);
+                oos.close();
+                oosBytes = bytesStream.toByteArray();
+                res = timer.stop();
+
+                //oos statistics
+                minTimeOOS = Math.min(res, minTimeOOS);
+                maxTimeOOS = Math.max(res, maxTimeOOS);
+                avgTimeOOS = (avgTimeOOS * i + res) / (i + 1);
+                oosSize = oosBytes.length;
+                avgSizeOOS = (avgSizeOOS * i + oosSize) / (i + 1);
+
+            }
+            catch (Exception e) { e.printStackTrace(); }
+        }
+
+        double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
+        double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
+
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+                "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
+                ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
+                "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
+                ANSI_BLUE + "average file size improvement - " + sizeImprove + "%" + ANSI_RESET);
+
+        return 0.5 * runTimeImprove + 0.5 * sizeImprove;
+    }
+
 
     private static class Timer {
 
