@@ -51,7 +51,7 @@ public class Buffer {
 			if (this.type == TYPE.STATIC)
 				throw new IllegalStateException("cannot change size of STATIC buffer.");
 			byte[] arr = null;
-			int length = 0;
+			int length;
 			if (size > this.data.length * 2) length = this.pointer + size;
 			else length = this.data.length * 2;
 			this.data = Arrays.copyOf(this.data, length);
@@ -122,10 +122,33 @@ public class Buffer {
 	}
 
 	/**
+	 * Constructs Buffer from a byte array describing the buffer data.
+	 * The buffer data will be the array from index 0 to count - 1.
+	 * The created buffer will be STATIC and in READ mode (read/write pointer pointing to 0).
+	 * @param data the data to create the buffer with.
+	 * @param count the number of bytes to use from the given data.
+	 */
+	public Buffer(byte[] data, int count) {
+		this.data = Arrays.copyOf(data, count);
+		this.pointer = 0;
+		this.type = TYPE.STATIC;
+		this.mode = MODE.READ;
+	}
+
+	/**
+	 * Constructs Buffer from a byte array describing the buffer data
+	 * The created buffer will be STATIC and in READ mode (read/write pointer pointing to 0).
+	 * @param data the data to create the buffer with.
+	 */
+	public Buffer(byte[] data) {
+		this(data, data.length);
+	}
+
+	/**
 	 * Sets the Buffer to READ mode, this changes the Buffer's type to STATIC. <br><br>
 	 * * While in READ mode the buffer wont be able to change its size or its contents. <br><br>
-	 * * Changing the buffer to READ mode sets its pointer to point to the first element. <br><br>
-	 * * Changing the buffer to READ mode resize's the buffer to fit the data it holds,
+	 * * Changing the buffer to READ mode sets its pointer to point to the first byte. <br><br>
+	 * * Changing the buffer to READ mode resize's the buffer to fit the data it holds.
 	 */
 	public void setRead() {
 		if (this.mode == MODE.READ) return;
@@ -451,9 +474,6 @@ public class Buffer {
 
 	//region Write Primitive Array
 
-	//TODO: somehow inline the calls to the primitive write functions in order to reduce function calls, mainly calls to alloc_buffer.
-
-
 	public void write(byte[] data) throws IllegalStateException {
 		if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
 		alloc_buffer(data.length);
@@ -563,7 +583,7 @@ public class Buffer {
 		return primitiveClasses.contains(c);
 	}
 
-	private static HashSet<Class<?>> primitiveClasses = new HashSet<Class<?>>(Arrays.asList(
+	private static HashSet<Class<?>> primitiveClasses = new HashSet<>(Arrays.asList(
 			Byte.class,
 			Short.class,
 			Character.class,
@@ -605,6 +625,7 @@ public class Buffer {
 		else if (dest instanceof float[])       read((float[])  dest);
 		else if (dest instanceof double[])      read((double[]) dest);
 		else if (dest instanceof ISerializable) read((ISerializable) dest);
+		else if (dest instanceof ISerializable[]) read((ISerializable[]) dest);
 		else throw new IllegalArgumentException("trying to read an unsupported type - " + dest.getClass().getSimpleName() + ".");
 	}
 
@@ -900,8 +921,7 @@ public class Buffer {
 
 	public void read(byte[] dest) throws BufferOverflowException, IllegalStateException {
 		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
 		for (int i = 0; i < dest.length; i++) {
 			dest[i] = this.data[pointer++];
 		}
@@ -909,58 +929,94 @@ public class Buffer {
 
 	public void read(boolean[] dest) throws BufferOverflowException, IllegalStateException {
 		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-		if(this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if(this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
 		for (int i = 0; i < dest.length; i++) {
 			dest[i] = this.data[pointer++] == 1;
 		}
 	}
 
 	public void read(short[] dest) throws BufferOverflowException, IllegalStateException {
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+		byte b1, b0;
 		for (int i = 0; i < dest.length; i++) {
-			dest[i] = readShort();
+			b1 = data[pointer++];
+			b0 = data[pointer++];
+			dest[i] = (short) (((b1 & 0xff) << 8) | (b0 & 0xff));
 		}
 	}
 
 	public void read(char[] dest) throws BufferOverflowException, IllegalStateException {
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+		byte b1, b0;
 		for (int i = 0; i < dest.length; i++) {
-			dest[i] = readChar();
+			b1 = data[pointer++];
+			b0 = data[pointer++];
+			dest[i] = (char) (((b1 & 0xff) << 8) | (b0 & 0xff));
 		}
 	}
 
 	public void read(int[] dest) throws BufferOverflowException, IllegalStateException {
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+		byte b3, b2, b1, b0;
 		for (int i = 0; i < dest.length; i++) {
-			dest[i] = readInt();
+			b3 = data[pointer++];
+			b2 = data[pointer++];
+			b1 = data[pointer++];
+			b0 = data[pointer++];
+			dest[i] = (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
 		}
 	}
 
 	public void read(long[] dest) throws BufferOverflowException, IllegalStateException {
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+		byte b7, b6, b5, b4, b3, b2, b1, b0;
 		for (int i = 0; i < dest.length; i++) {
-			dest[i] = readLong();
+			b7 = data[pointer++];
+			b6 = data[pointer++];
+			b5 = data[pointer++];
+			b4 = data[pointer++];
+			b3 = data[pointer++];
+			b2 = data[pointer++];
+			b1 = data[pointer++];
+			b0 = data[pointer++];
+			dest[i] = (((b7 & 0xffL) << 56) | ((b6 & 0xffL) << 48) | ((b5 & 0xffL) << 40) | ((b4 & 0xffL) << 32)
+					| ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
 		}
 	}
 
 	public void read(float[] dest) throws BufferOverflowException, IllegalStateException {
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+		byte b3, b2, b1, b0;
 		for (int i = 0; i < dest.length; i++) {
-			dest[i] = readFloat();
+			b3 = data[pointer++];
+			b2 = data[pointer++];
+			b1 = data[pointer++];
+			b0 = data[pointer++];
+			int intVal = (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
+			dest[i] = Float.intBitsToFloat(intVal);
 		}
 	}
 
 	public void read(double[] dest) throws BufferOverflowException, IllegalStateException {
-		if (this.data.length < this.pointer + dest.length)
-			throw new BufferOverflowException();
+		if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
+		if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+		byte b7, b6, b5, b4, b3, b2, b1, b0;
 		for (int i = 0; i < dest.length; i++) {
-			dest[i] = readDouble();
+			b7 = data[pointer++];
+			b6 = data[pointer++];
+			b5 = data[pointer++];
+			b4 = data[pointer++];
+			b3 = data[pointer++];
+			b2 = data[pointer++];
+			b1 = data[pointer++];
+			b0 = data[pointer++];
+			long longVal = (((b7 & 0xffL) << 56) | ((b6 & 0xffL) << 48) | ((b5 & 0xffL) << 40) | ((b4 & 0xffL) << 32)
+					| ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
+			dest[i] = Double.longBitsToDouble(longVal);
 		}
 	}
 
