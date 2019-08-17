@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #define DEFAULT_BUFFER_SIZE 32
 
@@ -63,9 +64,43 @@ returns status { FAILURE, SUCCESS } indicating the completion status of the func
  */
 status set_mode_write(Buffer* buffer, type type);
 
-//Closes the buffer that `buffer` points to and releases all the memory assosiated with it.
+//Closes the buffer that `buffer` points to and releases all the memory associated with it.
 void close_buffer(Buffer **buffer);
 
+#if __STDC__==1 && __STDC_VERSION__ >= 201112L
+
+#define uchar unsigned char
+#define ushort unsigned short
+#define uint unsigned int
+#define ulong unsigned long
+
+
+//writes X into the Buffer BUF, X must be a primitive type.
+#define WRITE(BUF,X) _Generic((BUF),\
+                            Buffer*: _Generic((X),\
+                            char:       write_char,\
+                            uchar:      write_char,\
+                            short:      write_short,\
+                            ushort:     write_short,\
+                            int:        write_int,\
+                            uint:       write_int,\
+                            long:       write_long,\
+                            ulong:      write_long,\
+                            float:      write_float,\
+                            double:     write_double))(BUF,X)
+
+//writes the array pointed to by X into the buffer BUF, only writes L elements of the array.
+#define WRITE_ARRAY(BUF,X,L) _Generic((BUF),\
+                                    Buffer*: _Generic((L),\
+                                    size_t: _Generic((X),\
+                                    char*:      write_char_array,\
+                                    short*:     write_short_array,\
+                                    int*:       write_int_array,\
+                                    long*:      write_long_array,\
+                                    float*:     write_float_array,\
+                                    double*:    write_double_array,\
+                                    default:    write_data)))(BUF,X,L)
+#endif
 
 /*
 Write a char into the buffer - `buffer`.
