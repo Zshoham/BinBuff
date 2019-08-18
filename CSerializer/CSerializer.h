@@ -7,7 +7,6 @@
 
 #define DEFAULT_BUFFER_SIZE 32
 
-
 typedef struct  s_buffer Buffer;
 
 typedef void* Serializable;
@@ -67,6 +66,12 @@ status set_mode_write(Buffer* buffer, type type);
 //Closes the buffer that `buffer` points to and releases all the memory associated with it.
 void close_buffer(Buffer **buffer);
 
+/*
+ * the WRITE and WRITE_ARRAY macros use _Generic which was introduced in C11,
+ * thus we need to make sure the C11 standard is implemented, this if statement
+ * should be true only if the C11 standard and _Generic are implemented and used
+ * by the compiler.
+ */
 #if __STDC__==1 && __STDC_VERSION__ >= 201112L
 
 #define uchar unsigned char

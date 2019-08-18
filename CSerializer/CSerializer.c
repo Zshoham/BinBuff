@@ -1,5 +1,7 @@
 #include "CSerializer.h"
 
+typedef enum {FALSE = 0, TRUE = 1} bool;
+
 struct  s_buffer
 {
 	void *data;
@@ -7,9 +9,26 @@ struct  s_buffer
 	size_t next_pointer;
 	type type;
 	mode mode;
+	bool big_endian;
 };
 
 #pragma region UTIL
+
+static bool is_big_endian()
+{
+    int num = 1;
+    if(*(char *)&num == 1) return FALSE;
+    return TRUE;
+}
+
+static void* rev_memcpy(void *dest, const void *src, size_t length)
+{
+    char *d = dest + length - 1;
+    const char *s = src;
+    while (length--)
+        *d-- = *s++;
+    return dest;
+}
 
 /*
 If the buffer is dynamic ensures the buffer has at least `size` free memory to write to.
@@ -19,7 +38,7 @@ size - the size of the memory that needs to be available.
 
 returns status { BUFFER_OVERFLOW, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status alloc_buffer(Buffer *buffer, size_t size)
+static status alloc_buffer(Buffer *buffer, size_t size)
 {
 	if(buffer->size - buffer->next_pointer < size)
 	{
@@ -43,7 +62,7 @@ size - size of the data to be written.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status serialize_data(Buffer *buffer, void *data, size_t size)
+static status serialize_data(Buffer *buffer, void *data, size_t size)
 {
 	if (!buffer) return FAILURE;
 	if (!data) return FAILURE;
@@ -51,7 +70,13 @@ status serialize_data(Buffer *buffer, void *data, size_t size)
 	status s;
 	if ((s = alloc_buffer(buffer, size) != SUCCESS)) return s;
 	char *dest = (char*)buffer->data;
-	if (!memcpy(dest + buffer->next_pointer, data, size)) return FAILURE;
+
+	if (buffer->big_endian)
+        dest = memcpy(dest + buffer->next_pointer, data, size);
+    else
+        dest = rev_memcpy(dest + buffer->next_pointer, data, size);
+
+    if (!dest) return FAILURE;
 	buffer->next_pointer += size;
 	return SUCCESS;
 }
@@ -66,14 +91,21 @@ size - size of the data to be read.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status deserialize_data(Buffer *buffer, void *dest, size_t size)
+static status deserialize_data(Buffer *buffer, void *dest, size_t size)
 {
 	if (!buffer) return FAILURE;
+	if (!dest) return FAILURE;
 	if (buffer->mode == WRITE) return ILLEGAL_READ;
 	if (buffer->next_pointer + buffer->size < size) return BUFFER_OVERFLOW;
 	const char *src = buffer->data;
-	if (!memcpy(dest, src + buffer->next_pointer, size)) return FAILURE;
-	buffer->next_pointer += size;
+
+	if (buffer->big_endian)
+        dest = memcpy(dest, src + buffer->next_pointer, size);
+    else
+        dest = rev_memcpy(dest, src + buffer->next_pointer, size);
+
+    if (!dest) return FAILURE;
+    buffer->next_pointer += size;
 	return SUCCESS;
 }
 
@@ -107,9 +139,11 @@ Buffer* create_dynamic_buffer(size_t initial_size, status *status)
 	res->next_pointer = 0;
 	res->type = DYNAMIC;
 	res->mode = WRITE;
-	*status = SUCCESS;
+    *status = SUCCESS;
+    res->big_endian = is_big_endian();
 
-	return res;
+
+    return res;
 }
 
 Buffer* create_buffer(type type, status *status)
@@ -133,6 +167,7 @@ Buffer* create_buffer(type type, status *status)
 	res->type = type;
 	res->mode = WRITE;
 	*status = SUCCESS;
+    res->big_endian = is_big_endian();
 
 	return res;
 }
@@ -164,8 +199,9 @@ Buffer* create_static_buffer(size_t size, status *status)
 	res->type = STATIC;
 	res->mode = WRITE;
 	*status = SUCCESS;
+    res->big_endian = is_big_endian();
 
-	return res;
+    return res;
 }
 
 status set_mode_read(Buffer *buffer)
