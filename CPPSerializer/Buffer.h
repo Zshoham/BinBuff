@@ -173,7 +173,7 @@ public:
 	friend std::ifstream& operator>>(std::ifstream& stream, Buffer& buffer);
 
 
-	#pragma region write
+#pragma region write
 
 	
 	/**
@@ -286,22 +286,9 @@ public:
 	template<class T>
 	Buffer& operator<<(std::queue<T> &data) { this->write(data); return *this; }
 
-	#ifdef __GNUC__
-
-    /**
-     * \brief writes the entire array into the buffer.
-     * \tparam T a serializable data type or a container of a serializable data type.
-     * \tparam length a size_t representing the length of the array.
-     * \param data the queue containing the data.
-     */
-	template<class T, size_t length>
-	Buffer& operator<<(std::array<T, length> &data) { this->write(data); return *this; }
-
-    #endif
-
 #pragma endregion
 
-	#pragma region container write
+#pragma region container write
 
 
 	/**
@@ -329,25 +316,12 @@ public:
 	 * \param data the queue containing the data.
 	 */
 	template<class T>
+
 	void write(std::queue<T> &data);
-
-    #ifdef __GNUC__
-
-	/**
-     * \brief writes the entire array into the buffer.
-     * \tparam T a serializable data type or a container of a serializable data type.
-     * \tparam length a size_t representing the length of the array.
-     * \param data the queue containing the data.
-     */
-	template <class T, size_t length>
-	void write(std::array<T, length> &data);
-
-	#endif
-
-	#pragma endregion
+#pragma endregion
 
 
-	#pragma region read
+#pragma region read
 
 	/**
 	 * \brief reads 'size' bytes from the buffer into the memory 'dest' points to.
@@ -444,10 +418,10 @@ public:
 	Buffer& operator>>(T &dest) { read(dest); return *this; }
 
 
-	#pragma endregion
+#pragma endregion
 
 
-	#pragma region container read
+#pragma region container read
 
 
 	/**
@@ -502,7 +476,7 @@ public:
 	template<class T>
 	void read(std::queue<T> &dest, size_t length);
 
-	#pragma endregion
+#pragma endregion
 
 };
 
@@ -540,7 +514,7 @@ template <class Itr>
 void Buffer::write(Itr begin, Itr end)
 {
 	static_assert(is_valid_iterator<Itr>::value || is_valid_const_iterator<Itr>::value, "received invalid iterator");
-	static_assert(is_serializable<typename Itr::value_type>::value, "trying to write non primitive non serializable type into buffer.");
+	static_assert(is_serializable<decltype(*begin)>::value, "trying to write non primitive non serializable type into buffer.");
 	for (Itr itr = begin; itr != end; ++itr)
 		this->write(*itr);
 }
@@ -573,19 +547,6 @@ void Buffer::write(std::queue<T>& data)
 		data.pop();
 	}
 }
-
-#ifdef __GNUC__
-
-template<class T, size_t length>
-void Buffer::write(std::array<T, length> &data)
-{
-    static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
-    for (int i = 0; i < data.size(); ++i) {
-        this->write(data[i]);
-    }
-}
-
-#endif
 
 #pragma endregion
 

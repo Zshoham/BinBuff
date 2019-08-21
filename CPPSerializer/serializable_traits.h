@@ -60,8 +60,6 @@ namespace impl
 	template<typename T>
 	struct remove_inner_const<const T*> { typedef T* type; };
 
-
-
 	template<typename T>
 	struct construct
 	{
@@ -90,6 +88,7 @@ namespace impl
 	template<class T>
 	struct is_serializable
 	{
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
 		template<class S>
 		struct is_primitive_serializable
@@ -121,13 +120,15 @@ namespace impl
 			static const bool value = serializable<S1>::value && serializable<S2>::value;
 		};
 
-		static const bool value = serializable<T>::value;
+		static const bool value = serializable<test_type>::value;
 	};
 
 	template<class T>
 	struct is_deserializable
 	{
-		template<typename S>
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
+
+        template<typename S>
 		static constexpr bool test(S *type)
 		{
 			return test(type, std::is_arithmetic<S>());
@@ -145,30 +146,27 @@ namespace impl
 			return is_serializable<S>::value && std::is_default_constructible<S>::value;
 		}
 
-		static const bool value = test<T>(nullptr);
+		static const bool value = test<test_type>(nullptr);
 	};
 
 	template<typename T>
 	struct is_valid_normal_iterator
 	{
-		typedef typename std::remove_const<T>::type test_type;
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
 		template<typename Itr>
 		static constexpr bool test(
 			Itr *pt,
-			Itr const *cpt = nullptr,
-			decltype(*(*pt)) * = nullptr,
-			decltype(++(*pt)) * = nullptr,
-			decltype((*pt)=(std::declval<const Itr&>())) * = nullptr,
-			decltype((*pt)==(std::declval<Itr&>())) * = nullptr,
-			decltype((*pt)!=(std::declval<Itr&>())) * = nullptr,
-			typename Itr::value_type *pv = nullptr)
+			typename std::remove_reference<decltype(*(*pt))>::type * = nullptr,
+			typename std::remove_reference<decltype(++(*pt))>::type * = nullptr,
+			typename std::remove_reference<decltype((*pt)=(std::declval<const Itr&>()))>::type * = nullptr,
+			typename std::remove_reference<decltype((*pt)==(std::declval<Itr&>()))>::type * = nullptr,
+			typename std::remove_reference<decltype((*pt)!=(std::declval<Itr&>()))>::type * = nullptr)
 		{
-			typedef typename Itr::value_type value_type;
+			typedef decltype(*(*pt)) value_type;
 
-			return std::is_same<decltype(*(*pt)), value_type&>::value&&
-				std::is_same<decltype((*pt) == (std::declval<Itr&>())), bool>::value&&
-				std::is_same<decltype((*pt) != (std::declval<Itr&>())), bool>::value&&
+			return std::is_same<decltype((*pt) == (std::declval<Itr&>())), bool>::value &&
+				std::is_same<decltype((*pt) != (std::declval<Itr&>())), bool>::value &&
 				std::is_same<decltype(++(*pt)), Itr&>::value;
 		}
 
@@ -184,24 +182,21 @@ namespace impl
 	template<typename T>
 	struct is_valid_const_iterator
 	{
-		typedef typename std::remove_const<T>::type test_type;
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
 		template<typename Itr>
 		static constexpr bool test(
 			Itr *pt,
-			Itr const *cpt = nullptr,
-			decltype(*(*pt))* = nullptr,
-			decltype(++(*pt))* = nullptr,
-			decltype((*pt) = (std::declval<const Itr&>()))* = nullptr,
-			decltype((*pt) == (std::declval<Itr&>()))* = nullptr,
-			decltype((*pt) != (std::declval<Itr&>()))* = nullptr,
-			typename Itr::value_type *pv = nullptr)
+			typename std::remove_reference<decltype(*(*pt))>::type * = nullptr,
+            typename std::remove_reference<decltype(++(*pt))>::type * = nullptr,
+			typename std::remove_reference<decltype((*pt) = (std::declval<const Itr&>()))>::type * = nullptr,
+			typename std::remove_reference<decltype((*pt) == (std::declval<Itr&>()))>::type * = nullptr,
+			typename std::remove_reference<decltype((*pt) != (std::declval<Itr&>()))>::type * = nullptr)
 		{
-			typedef typename Itr::value_type value_type;
+			typedef decltype(*(*pt)) value_type;
 
-			return std::is_same<decltype(*(*pt)), const value_type&>::value&&
-				std::is_same<decltype((*pt) == (std::declval<const Itr&>())), bool>::value&&
-				std::is_same<decltype((*pt) != (std::declval<const Itr&>())), bool>::value&&
+			return std::is_same<decltype((*pt) == (std::declval<const Itr&>())), bool>::value &&
+				std::is_same<decltype((*pt) != (std::declval<const Itr&>())), bool>::value &&
 				std::is_same<decltype(++(*pt)), Itr&>::value;
 		}
 
@@ -217,7 +212,7 @@ namespace impl
 	template<typename T>
 	struct is_writable_container
 	{
-		typedef typename std::remove_const<T>::type test_type;
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
 		template<typename A>
 		static constexpr bool test(
@@ -236,13 +231,13 @@ namespace impl
 			typedef typename A::const_iterator const_iterator;
 			typedef typename A::value_type value_type;
 
-			return  std::is_same<decltype(pt->begin()), iterator>::value &&
+			return std::is_same<decltype(pt->begin()), iterator>::value &&
 				std::is_same<decltype(pt->end()), iterator>::value &&
 				std::is_same<decltype(cpt->begin()), const_iterator>::value &&
 				std::is_same<decltype(cpt->end()), const_iterator>::value &&
 				(std::is_same<decltype(**pi), value_type &>::value || std::is_same<decltype(**pi), value_type const &>::value) &&
 				std::is_same<decltype(**pci), value_type const &>::value &&
-				(is_valid_normal_iterator<iterator>::value || is_valid_const_iterator<iterator>::value)&&
+				(is_valid_normal_iterator<iterator>::value || is_valid_const_iterator<iterator>::value) &&
 				is_valid_const_iterator<const_iterator>::value &&
 				is_serializable<value_type>::value;
 
@@ -259,7 +254,7 @@ namespace impl
 	template<typename T>
 	struct is_readable_seq
 	{
-		typedef typename std::remove_const<T>::type test_type;
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
 		template<typename A>
 		static constexpr bool test(
@@ -304,7 +299,7 @@ namespace impl
 	template<typename T>
 	struct is_readable_ass
 	{
-		typedef typename std::remove_const<T>::type test_type;
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
 		template<typename A>
 		static constexpr bool test(
