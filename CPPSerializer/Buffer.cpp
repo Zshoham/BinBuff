@@ -17,6 +17,15 @@ void Buffer::alloc_buffer(const std::size_t &size)
 	}
 }
 
+void* Buffer::rev_memcpy(void *dest, const void *src, size_t length)
+{
+    char *d = static_cast<char*>(dest) + length - 1;
+    const char *s = static_cast<const char*>(src);
+    while (length--)
+        *d-- = *s++;
+    return dest;
+}
+
 Buffer::Buffer(type type, const std::size_t &size)
 {
 	if (size < 1) throw BufferUnderflowException("buffer buffer_size must be greater than 1.");
@@ -196,15 +205,17 @@ void Buffer::write_generic(const void* data, const std::size_t &size)
 {
 	if (!data) throw BufferNullPointerException("trying to write buffer_data that from null pointer.");
 	if (this->buffer_mode == READ) throw BufferIllegalWriteException("cannot write to buffer when in read mode.");
-	try
-	{
-		alloc_buffer(size);
-		char *dest = static_cast<char*>(this->buffer_data);
-		if (!std::memcpy(dest + this->next_pointer, data, size)) throw BufferNullPointerException("failed to write buffer_data into buffer.");
-		this->next_pointer += size;
-	}
-	catch (BufferOverflowException& e) { std::clog << e.what() << std::endl; }
-	catch (BufferAllocationException& e) { std::cerr << e.what() << std::endl; }
+
+    alloc_buffer(size);
+    char *dest = static_cast<char*>(this->buffer_data);
+
+    if (is_big_endian)
+        dest = static_cast<char*>(std::memcpy(dest + this->next_pointer, data, size));
+    else
+        dest = static_cast<char*>(rev_memcpy(dest + this->next_pointer, data, size));
+
+    if(!dest)  throw BufferNullPointerException("failed to write buffer_data into buffer.");
+    this->next_pointer += size;
 }
 
 
@@ -214,7 +225,13 @@ void Buffer::read_generic(void* dest, std::size_t size)
 	if (this->buffer_mode == WRITE) throw BufferIllegalWriteException("cannot write to buffer when in read mode.");
 	if (this->next_pointer + size > this->buffer_size) throw BufferOverflowException("reached end of buffer.");
 	const char *src = static_cast<char *>(this->buffer_data);
-	if (!std::memcpy(dest, src + this->next_pointer, size)) throw BufferAllocationException("failed to allocate additional buffer space.");
+
+	if (is_big_endian)
+	    dest = std::memcpy(dest, src + this->next_pointer, size);
+    else
+        dest = rev_memcpy(dest, src + this->next_pointer, size);
+
+    if (!dest) throw BufferAllocationException("failed to allocate additional buffer space.");
 	this->next_pointer += size;
 }
 

@@ -32,8 +32,12 @@ private:
 	type buffer_type;
 	mode buffer_mode;
 
+    const int endianness_test = 1;
+    const bool is_big_endian = (*((char *)&endianness_test)) != 1;
 
-	void alloc_buffer(const std::size_t &size);
+    void alloc_buffer(const std::size_t &size);
+
+    void* rev_memcpy(void *dest, const void *src, size_t length);
 
 	template <class T>
 	void write(const T &data, std::true_type)

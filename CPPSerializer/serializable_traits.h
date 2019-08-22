@@ -341,7 +341,6 @@ namespace impl
 
 	};
 
-	
 }
 
 /**
@@ -464,7 +463,6 @@ struct is_readable_sequential : std::bool_constant<impl::is_readable_seq<C>::val
 */
 template<typename C>
 struct is_readable_associative : std::bool_constant<impl::is_readable_ass<C>::value> {};
-
 
 }
 #endif
