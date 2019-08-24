@@ -14,6 +14,7 @@ struct  s_buffer
 
 #pragma region UTIL
 
+//checks if the system is using big endian representation or not.
 static bool is_big_endian()
 {
     int num = 1;
@@ -21,6 +22,13 @@ static bool is_big_endian()
     return TRUE;
 }
 
+/*
+reverse memory copy - copies length bytes from the memory pointed to
+ by src into dest but in reverse order, meaning for the following
+ src -> [b1, b2, b3, ..., bn] source data the n bytes following the location
+ pointed to by dest will look like this:
+ dest -> [bn, b(n-1), ..., b3, b2, b1]
+ */
 static void* rev_memcpy(void *dest, const void *src, size_t length)
 {
     char *d = dest + length - 1;

@@ -75,6 +75,7 @@ void close_buffer(Buffer **buffer);
 #if __STDC__==1 && __STDC_VERSION__ >= 201112L
 
 #define uchar unsigned char
+#define schar signed char
 #define ushort unsigned short
 #define uint unsigned int
 #define ulong unsigned long
@@ -85,6 +86,7 @@ void close_buffer(Buffer **buffer);
                             Buffer*: _Generic((X),\
                             char:       write_char,\
                             uchar:      write_char,\
+                            schar:      write_char,\
                             short:      write_short,\
                             ushort:     write_short,\
                             int:        write_int,\
@@ -99,9 +101,14 @@ void close_buffer(Buffer **buffer);
                                     Buffer*: _Generic((L),\
                                     size_t: _Generic((X),\
                                     char*:      write_char_array,\
+                                    uchar*:     write_char_array,\
+                                    schar*:     write_char_array,\
                                     short*:     write_short_array,\
+                                    ushort*:    write_short_array,\
                                     int*:       write_int_array,\
+                                    uint*:      write_int_array,\
                                     long*:      write_long_array,\
+                                    ulong*:     write_long_array,\
                                     float*:     write_float_array,\
                                     double*:    write_double_array,\
                                     default:    write_data)))(BUF,X,L)

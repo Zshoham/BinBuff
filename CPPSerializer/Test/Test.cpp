@@ -297,17 +297,15 @@ bool test_containers()
 	std::vector<std::shared_ptr<Game>> nvec;
 	std::deque<Player> ndeque;
 	std::forward_list<Game> nflist;
-	std::list<Player*> nlist;
+	std::list<std::shared_ptr<Player>> nlist;
 	std::set<Game> nset;
 	std::unordered_set<Player, hash_player> nuset;
 	std::unordered_map<int, Game> numap;
 	std::map<int, Player> nmap;
-	std::stack<Game*> nstack;
+	std::stack<std::shared_ptr<Game>> nstack;
 	std::queue<Player> nqueue;
 
-	buf.read(nsp);
-	buf.read(npgp);
-	buf.read(narr);
+	buf >> nsp >> npgp >> narr;
 	buf.read(nvec, 2);
 	buf.read(ndeque, 2);
 	buf.read(nflist, 2);

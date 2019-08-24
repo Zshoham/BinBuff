@@ -369,19 +369,19 @@ struct default_construct
 
 
 /**
- * Defines a serializable type i.e type T is called serializable if and only if is_serializable<T>::value is true.      <br>
+ * Defines a serializable type i.e type T is called serializable if and only if is_serializable<T>::value is true.
  *                                                                                                                     
- * let type T be called primitive serializable if one of the following applies:											<br>
- * *    T is a primitive type or more specifically T needs to satisfies is_arithmetic<T>								<br>
- * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.	<br>
+ * let type T be called primitive serializable if one of the following applies:
+ * *    T is a primitive type or more specifically T needs to satisfies is_arithmetic<T>
+ * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.
  *                                                                                                                     
- * let type T be serializable if it is primitive serializable or one of the following:									<br>          
- * *    a pointer to a primitive serializable type.																		<br>              
- * *    a std::shared_ptr to a primitive serializable type.																<br>              
- * *    a std::pair of two primitive serializable types.																<br>
+ * let type T be serializable if it is primitive serializable or one of the following:
+ * *    a pointer to a primitive serializable type.
+ * *    a std::shared_ptr to a primitive serializable type.
+ * *    a std::pair of two primitive serializable types.
  */
 template<class T>
-struct is_serializable : std::bool_constant<impl::is_serializable<T>::value> {};
+struct is_serializable : std::integral_constant<bool, impl::is_serializable<T>::value> {};
 
 
 /**
@@ -391,24 +391,24 @@ struct is_serializable : std::bool_constant<impl::is_serializable<T>::value> {};
  * an empty constructor, more specifically if it satisfies is_default_constructable<T>
  */
 template<class T>
-struct is_deserializable : std::bool_constant<impl::is_deserializable<T>::value> {};
+struct is_deserializable : std::integral_constant<bool, impl::is_deserializable<T>::value> {};
 
 /**
 * Defines an iterator over a serializable type i.e type Itr is an iterator in this context if and only if is_valid_iterator<Itr>::value is true.<br>
 *
-* The iterator definition is very simple and it is based on the definition in the standard library.					<br>
+* The iterator definition is very simple and it is based on the definition in the standard library.
 * Note that this definition does not require the value type of the iterator to be serializable
 * that responsibility falls on the container being iterated.
 * 
-* let Itr be an iterator if all of the following apply:																<br>
-* * Itr defines copy assignment operator. (itr and o being of type Itr the following should be valid 'itr = o')		<br>
-* * Itr can be compared using equality/inequality operators.														<br>
-*   (itr1 and itr2 being of type Itr the following should be valid 'itr == itr2', 'itr1 != itr2')					<br>
-* * Itr can be dereference as an rvalue. (itr being of type Itr the following should be valid '*itr', 'itr->x')		<br>
-* * Itr can be incremented using the ++ operator. (itr being of type Itr the following should be valid '++itr')		<br>
+* let Itr be an iterator if all of the following apply:
+* * Itr defines copy assignment operator. (itr and o being of type Itr the following should be valid 'itr = o')
+* * Itr can be compared using equality/inequality operators.
+*   (itr1 and itr2 being of type Itr the following should be valid 'itr == itr2', 'itr1 != itr2')
+* * Itr can be dereference as an rvalue. (itr being of type Itr the following should be valid '*itr', 'itr->x')
+* * Itr can be incremented using the ++ operator. (itr being of type Itr the following should be valid '++itr')
 */
 template<class Itr>
-struct is_valid_iterator : std::bool_constant<impl::is_valid_normal_iterator<Itr>::value> {};
+struct is_valid_iterator : std::integral_constant<bool, impl::is_valid_normal_iterator<Itr>::value> {};
 
 /**
 * Defines a const iterator over a serializable type i.e type Itr is a const iterator in this context if and only if is_valid_const_iterator<Itr>::value is true.<br>
@@ -416,7 +416,7 @@ struct is_valid_iterator : std::bool_constant<impl::is_valid_normal_iterator<Itr
 * The const iterator definition is the same as the other iterators with the addition that it allows to iterate over const values.
 */
 template<class Itr>
-struct is_valid_const_iterator : std::bool_constant<impl::is_valid_const_iterator<Itr>::value> {};
+struct is_valid_const_iterator : std::integral_constant<bool, impl::is_valid_const_iterator<Itr>::value> {};
 
 /**
  * Defines a writable container type i.e type C is called a writable container if and only if is_writable_container<C>::value is true.
@@ -430,7 +430,7 @@ struct is_valid_const_iterator : std::bool_constant<impl::is_valid_const_iterato
  * * C defines a value_type that is of a serializable type (as defined above).
  */
 template<typename C>
-struct is_writable_container : std::bool_constant<impl::is_writable_container<C>::value> {};
+struct is_writable_container : std::integral_constant<bool, impl::is_writable_container<C>::value> {};
 
 /**
  * Defines a readable container type i.e type C is called a readable container if and only if is_readable_container<C>::value is true.
@@ -443,7 +443,7 @@ struct is_writable_container : std::bool_constant<impl::is_writable_container<C>
  *
  */
 template<typename C>
-struct is_readable_container : std::bool_constant<impl::is_readable_ass<C>::value || impl::is_readable_seq<C>::value> {};
+struct is_readable_container : std::integral_constant<bool, impl::is_readable_ass<C>::value || impl::is_readable_seq<C>::value> {};
 
 /**
  * Defines a sequential readable container type i.e type C is called a sequential readable container if and only if is_readable_sequential<C>::value is true.
@@ -453,7 +453,7 @@ struct is_readable_container : std::bool_constant<impl::is_readable_ass<C>::valu
  * and the value type being the value that should be inserted.
  */
 template<typename C>
-struct is_readable_sequential : std::bool_constant<impl::is_readable_seq<C>::value> {};
+struct is_readable_sequential : std::integral_constant<bool, impl::is_readable_seq<C>::value> {};
 
 /**
 * Defines an associative readable container type i.e type C is called a associative readable container if and only if is_readable_sequential<C>::value is true.
@@ -462,7 +462,7 @@ struct is_readable_sequential : std::bool_constant<impl::is_readable_seq<C>::val
 * the value type being usually a key value pair representing the new mapping being added to the container.
 */
 template<typename C>
-struct is_readable_associative : std::bool_constant<impl::is_readable_ass<C>::value> {};
+struct is_readable_associative : std::integral_constant<bool, impl::is_readable_ass<C>::value> {};
 
 }
 #endif
