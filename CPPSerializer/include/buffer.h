@@ -1,9 +1,8 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include "Serializable.h"
-#include "CPPSerializerException.h"
-#include "serializable_traits.h"
+#include "serializable.h"
+#include "binbuff_traits.h"
 
 #include <iostream>
 #include <cstring>
@@ -13,10 +12,11 @@
 #include <fstream>
 #include <forward_list>
 #include <functional>
+#include <stdexcept>
 
 #define DEFAULT_BUFFER_SIZE 32
 
-namespace Serializer
+namespace binbuff
 {
 
 class Buffer
@@ -70,7 +70,7 @@ private:
 	void write(const T* data, const std::size_t &length, std::true_type)
 	{
 		static_assert(std::is_arithmetic<T>::value, "trying to write non primitive non serializable types.");
-		if (!data) throw BufferNullPointerException("trying to write nullptr");
+		if (!data) throw std::runtime_error("trying to write nullptr");
 		write_generic(static_cast<const void*>(data), sizeof(*data) * length);
 	}
 
@@ -158,17 +158,11 @@ public:
 	//jump one byte forward in the buffer.
 	Buffer& operator++();
 
-	//jump one byte forward in the buffer.
-	Buffer operator++(int);
-
 	//jump 'jmp' bytes backwards in the buffer.
 	Buffer& operator-=(const std::size_t &jmp);
 
 	//jump one byte backwards in the buffer.
 	Buffer& operator--();
-
-	//jump one byte backwards in the buffer.
-	Buffer operator--(int);
 
 	//writes the buffer into the file-stream.
 	friend std::ofstream& operator<<(std::ofstream& stream, const Buffer& buffer);
@@ -217,7 +211,7 @@ public:
 	template<class T>
 	void write(T *data)
 	{
-		if (!data) throw BufferNullPointerException("trying to write nullptr");
+		if (!data) throw std::runtime_error("trying to write nullptr");
 		this->write(*data);
 	}
 
@@ -253,7 +247,7 @@ public:
 	template<class T>
 	void write(const T *data, const std::size_t &length)
 	{
-		if (!data) throw BufferNullPointerException("trying to write nullptr");
+		if (!data) throw std::runtime_error("trying to write nullptr");
 		this->write(data, length, std::is_arithmetic<T>());
 	}
 
@@ -362,7 +356,7 @@ public:
 	template<class T>
 	void read(T *dest)
 	{
-		if (!dest) throw BufferNullPointerException("trying to read into nullptr");
+		if (!dest) throw std::runtime_error("trying to read into nullptr");
 		this->read(*dest);
 	}
 
@@ -491,7 +485,7 @@ template <class T>
 void Buffer::write(const T* data, const std::size_t &length, std::false_type)
 {
 	static_assert(std::is_base_of<Serializable, T>::value, "trying to write non primitive non serializable types.");
-	if (!data) throw BufferNullPointerException("trying to write nullptr");
+	if (!data) throw std::runtime_error("trying to write nullptr");
 	for (size_t i = 0; i < length; ++i)
 	{
 		this->write(data[i]);
@@ -502,7 +496,7 @@ template <class T>
 void Buffer::write(T **data, const std::size_t &length)
 {
 	static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
-	if (!data) throw BufferNullPointerException("trying to write nullptr");
+	if (!data) throw std::runtime_error("trying to write nullptr");
 	for (std::size_t i = 0; i < length; i++)
 	{
 		this->write(*data[i]);
@@ -562,9 +556,9 @@ void Buffer::write(std::queue<T>& data)
 template <class T>
 void Buffer::read(T* dest, const std::size_t &length, std::false_type)
 {
-	if (!dest) throw BufferNullPointerException("trying to read buffer_data into null");
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
-	for (std::size_t i = 0; i < length; ++i)
+    if (!dest) throw std::runtime_error("trying to read buffer_data into null");
+    for (std::size_t i = 0; i < length; ++i)
 	{
 		T tmp;
 		tmp.deserialize(*this);
@@ -575,9 +569,9 @@ void Buffer::read(T* dest, const std::size_t &length, std::false_type)
 template <class T>
 void Buffer::read(T** dest, std::size_t length)
 {
-	if (!dest) throw BufferNullPointerException("trying to read buffer_data into null");
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
-	for (std::size_t i = 0; i < length; ++i)
+    if (!dest) throw std::runtime_error("trying to read buffer_data into null");
+    for (std::size_t i = 0; i < length; ++i)
 	{
 		dest[i] = new T;
 		this->read(dest[i]);

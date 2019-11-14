@@ -3,9 +3,9 @@
 
 #include <type_traits>
 #include <memory>
-#include "Serializable.h"
+#include "serializable.h"
 
-namespace Serializer
+namespace binbuff
 {
 
 

@@ -1,8 +1,5 @@
 #include "Game.h"
 
-
-
-
 Game::Game(int width, int height, int num_enemies) : width(width), height(height), num_enemies(num_enemies)
 {
 	this->player = new Player(1);
@@ -94,7 +91,7 @@ bool Game::operator==(const Game& other) const
 	return areEqual && *this->player == other.player;
 }
 
-void Game::serialize(ser::Buffer& buffer) const
+void Game::serialize(bbf::Buffer& buffer) const
 {
 	buffer << this->width << this->height;
 	buffer << *this->player;
@@ -102,7 +99,7 @@ void Game::serialize(ser::Buffer& buffer) const
 	buffer.write(this->enemies, this->num_enemies);
 }
 
-void Game::deserialize(ser::Buffer& buffer)
+void Game::deserialize(bbf::Buffer& buffer)
 {
 	buffer >> this->width >> this->height;
 	this->player = new Player;

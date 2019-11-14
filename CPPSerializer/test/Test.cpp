@@ -1,4 +1,4 @@
-#include "CPPSerializer.h"
+#include "buffer.h"
 #include "Game.h"
 #include "Player.h"
 #include <iostream>
@@ -9,7 +9,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-using namespace ser;
+using namespace binbuff;
 
 bool test_primitive()
 {

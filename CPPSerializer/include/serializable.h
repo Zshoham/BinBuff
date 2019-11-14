@@ -1,7 +1,7 @@
 #ifndef SERIALIZABLE_H
 #define SERIALIZABLE_H
 
-namespace Serializer
+namespace binbuff
 {
 	
 class Buffer;

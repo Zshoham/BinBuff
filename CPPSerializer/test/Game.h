@@ -2,10 +2,10 @@
 #define GAME_H
 
 
-#include "CPPSerializer.h"
+#include "binbuff.h"
 #include "Player.h"
 
-class Game : public ser::Serializable
+class Game : public bbf::Serializable
 {
 	int width, height;
 	Player *player;
@@ -16,7 +16,7 @@ public:
 	Game(int width, int height, int num_enemies);
 	Game() : width(0), height(0), player(nullptr), num_enemies(0), enemies(nullptr)  {}
 	Game(const Game& other);
-	~Game();
+	~Game() override;
 
 	Game& operator=(const Game& other);
 	Game& operator=(Game&& other) noexcept;
@@ -27,8 +27,8 @@ public:
 
 	bool operator<(const Game& other) const { return this->num_enemies < other.num_enemies; }
 
-	void serialize(ser::Buffer& buffer) const override;
-	void deserialize(ser::Buffer& buffer) override;
+	void serialize(bbf::Buffer& buffer) const override;
+	void deserialize(bbf::Buffer& buffer) override;
 };
 
 #endif
