@@ -1,4 +1,4 @@
-#include "CSerializer.h"
+#include "binbuff.h"
 
 typedef enum {FALSE = 0, TRUE = 1} bool;
 

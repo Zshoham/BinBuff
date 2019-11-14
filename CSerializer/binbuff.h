@@ -1,5 +1,5 @@
-#ifndef CSERIALIZER_H
-#define CSERIALIZER_H
+#ifndef BINBUFF_H
+#define BINBUFF_H
 
 #include <stdlib.h>
 #include <string.h>
