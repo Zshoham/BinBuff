@@ -1,3 +1,6 @@
+import com.binbuff.Buffer;
+import com.binbuff.ISerializable;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;

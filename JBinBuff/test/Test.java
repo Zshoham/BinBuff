@@ -1,3 +1,5 @@
+import com.binbuff.Buffer;
+
 import java.io.*;
 import java.util.*;
 
@@ -647,10 +649,10 @@ public class Test {
         double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
-                "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                "BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
                 "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
                 ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
@@ -715,10 +717,10 @@ public class Test {
         double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
-                "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                "BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
                 "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
                 ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
@@ -782,7 +784,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -846,7 +848,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -912,7 +914,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -1006,7 +1008,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -1098,7 +1100,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -1192,7 +1194,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
