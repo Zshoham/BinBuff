@@ -7,19 +7,19 @@
 
 #define DEFAULT_BUFFER_SIZE 32
 
-typedef struct  s_buffer Buffer;
+typedef struct  s_buffer buffer;
 
-typedef void* Serializable;
+typedef void* serializable;
 
-typedef enum e_status {FAILURE, SUCCESS, BUFFER_OVERFLOW, BUFFER_UNDERFLOW, ILLEGAL_WRITE, ILLEGAL_READ} status;
+typedef enum E_STATUS {FAILURE, SUCCESS, BUFFER_OVERFLOW, BUFFER_UNDERFLOW, ILLEGAL_WRITE, ILLEGAL_READ} status;
 
-typedef enum e_mode {READ, WRITE} mode;
+typedef enum E_MODE {READ, WRITE} mode;
 
-typedef enum e_type {DYNAMIC, STATIC} type;
+typedef enum E_TYPE {DYNAMIC, STATIC} type;
 
-typedef  status (*serialize)(Buffer *buffer, Serializable data);
+typedef status (*serialize)(buffer *buffer, serializable data);
 
-typedef status(*deserialize)(Buffer *buffer, Serializable dest);
+typedef status(*deserialize)(buffer *buffer, serializable dest);
 
 /*
 Creates a new dynamic buffer with initial size - `size`.
@@ -28,7 +28,7 @@ status - pointer to status that will hold the status of the function after its c
 
 returns the created buffer, also the status { BUFFER_UNDERFLOW, FAILURE, SUCCESS }
 */
-Buffer* create_dynamic_buffer(size_t initial_size, status *status);
+buffer* create_dynamic_buffer(size_t initial_size, status *status);
 
 /*
 Creates a new buffer with default size and type - `type`.
@@ -36,7 +36,7 @@ status - pointer to status that will hold the status of the function after its c
 
 returns the created buffer, also the status { BUFFER_UNDERFLOW, FAILURE, SUCCESS }.
 */
-Buffer *create_buffer(type type, status *status);
+buffer *create_buffer(type type, status *status);
 
 
 /*
@@ -46,7 +46,7 @@ status - pointer to status that will hold the status of the function after its c
 
 returns the created buffer, also the status { BUFFER_UNDERFLOW, FAILURE, SUCCESS }.
 */
-Buffer *create_static_buffer(size_t size, status *status);
+buffer *create_static_buffer(size_t size, status *status);
 
 /*
 Changes the mode of `buffer` to read.
@@ -54,17 +54,17 @@ Note that reading after calling this function will result in a read beginning fr
 
 returns status { FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status set_mode_read(Buffer *buffer);
+status set_mode_read(buffer *buffer);
 
 /*
 Changes the mode of `buffer` to write setting its type to be `type`.
 
 returns status { FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status set_mode_write(Buffer* buffer, type type);
+status set_mode_write(buffer* buffer, type type);
 
 //Closes the buffer that `buffer` points to and releases all the memory associated with it.
-void close_buffer(Buffer **buffer);
+void close_buffer(buffer **buffer);
 
 /*
  * the WRITE and WRITE_ARRAY macros use _Generic which was introduced in C11,
@@ -119,84 +119,84 @@ Write a char into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_char(Buffer *buffer, char data);
+status write_char(buffer *buffer, char data);
 
 /*
 Write char array of length - `length` into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_char_array(Buffer *buffer, char *data, size_t length);
+status write_char_array(buffer *buffer, char *data, size_t length);
 
 /*
 Write a short into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_short(Buffer *buffer, short data);
+status write_short(buffer *buffer, short data);
 
 /*
 Write short array of length - `length` into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_short_array(Buffer *buffer, short *data, size_t length);
+status write_short_array(buffer *buffer, short *data, size_t length);
 
 /*
 Write an int into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_int(Buffer *buffer, int data);
+status write_int(buffer *buffer, int data);
 
 /*
 Write int array of length - `length` into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_int_array(Buffer *buffer, int *data, size_t length);
+status write_int_array(buffer *buffer, int *data, size_t length);
 
 /*
 Write a long into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_long(Buffer *buffer, long data);
+status write_long(buffer *buffer, long data);
 
 /*
 Write long array of length - `length` into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_long_array(Buffer *buffer, long *data, size_t length);
+status write_long_array(buffer *buffer, long *data, size_t length);
 
 /*
 Write a float into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_float(Buffer *buffer, float data);
+status write_float(buffer *buffer, float data);
 
 /*
 Write float array of length - `length` into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_float_array(Buffer *buffer, float *data, size_t length);
+status write_float_array(buffer *buffer, float *data, size_t length);
 
 /*
 Write a double into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_double(Buffer *buffer, double data);
+status write_double(buffer *buffer, double data);
 
 /*
 Write double array of length - `length` into the buffer - `buffer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status write_double_array(Buffer *buffer, double *data, size_t length);
+status write_double_array(buffer *buffer, double *data, size_t length);
 
 /*
 Writes `size` bytes starting from where `data` points to into the buffer - `buffer`.
@@ -205,14 +205,14 @@ is continues in memory.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status write_data(Buffer *buffer, void *data, size_t size);
+status write_data(buffer *buffer, void *data, size_t size);
 
 /*
 Writes `data` into the buffer using the provided serializer - `serializer`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status write_generic_data(Buffer *buffer, Serializable data, serialize serializer);
+status write_generic_data(buffer *buffer, serializable data, serialize serializer);
 
 /*
 Writes array of serializable data into the buffer using the provided serializer - `serializer`.
@@ -221,7 +221,7 @@ length - length of the array - `data`.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status write_generic_data_array(Buffer *buffer, Serializable *data, size_t length, serialize serializer);
+status write_generic_data_array(buffer *buffer, serializable *data, size_t length, serialize serializer);
 
 
 /*
@@ -229,98 +229,98 @@ Reads a char from the buffer - `buffer` into the char pointed to by `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_char(Buffer *buffer, char *dest);
+status read_char(buffer *buffer, char *dest);
 
 /*
 Reads a char array from the buffer - `buffer` into the char array `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_char_array(Buffer *buffer, char *dest, size_t length);
+status read_char_array(buffer *buffer, char *dest, size_t length);
 
 /*
 Reads a short from the buffer - `buffer` into the short pointed to by `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_short(Buffer *buffer, short *dest);
+status read_short(buffer *buffer, short *dest);
 
 /*
 Reads a short array from the buffer - `buffer` into the short array `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_short_array(Buffer *buffer, short *dest, size_t length);
+status read_short_array(buffer *buffer, short *dest, size_t length);
 
 /*
 Reads a long from the buffer - `buffer` into the long pointed to by `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_int(Buffer *buffer, int *dest);
+status read_int(buffer *buffer, int *dest);
 
 /*
 Reads a int array from the buffer - `buffer` into the int array `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_int_array(Buffer *buffer, int *dest, size_t length);
+status read_int_array(buffer *buffer, int *dest, size_t length);
 
 /*
 Reads a char from the buffer - `buffer` into the char pointed to by `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_long(Buffer *buffer, long *dest);
+status read_long(buffer *buffer, long *dest);
 
 /*
 Reads a long array from the buffer - `buffer` into the long array `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_long_array(Buffer *buffer, long *dest, size_t length);
+status read_long_array(buffer *buffer, long *dest, size_t length);
 
 /*
 Reads a float from the buffer - `buffer` into the float pointed to by `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_float(Buffer *buffer, float *dest);
+status read_float(buffer *buffer, float *dest);
 
 /*
 Reads a float array from the buffer - `buffer` into the float array `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_float_array(Buffer *buffer, float *dest, size_t length);
+status read_float_array(buffer *buffer, float *dest, size_t length);
 
 /*
 Reads a double from the buffer - `buffer` into the double pointed to by `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_double(Buffer *buffer, double *dest);
+status read_double(buffer *buffer, double *dest);
 
 /*
 Reads a double array from the buffer - `buffer` into the double array `dest`.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
  */
-status read_double_array(Buffer *buffer, double *dest, size_t length);
+status read_double_array(buffer *buffer, double *dest, size_t length);
 
 /*
 Reads `size` bytes starting from the buffer into the "array" `dest`.
 
 returns status { ILLEAGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status read_data(Buffer *buffer, void *dest, size_t size);
+status read_data(buffer *buffer, void *dest, size_t size);
 
 /*
 Reads a single structure of the type that `dest` points to from the buffer into `dest` using the provided deserializer - `deserializer`.
 
 returns status { ILLEAGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status read_generic_data(Buffer *buffer, Serializable dest, deserialize deserializer);
+status read_generic_data(buffer *buffer, serializable dest, deserialize deserializer);
 
 /*
 Reads an array of structures of the type that `dest` contains from the buffer into `dest` using the provided deserializer - `deserializer`.
@@ -329,7 +329,7 @@ length - length of the array - `dest` and the amount of structures that will be 
 
 returns status { ILLEAGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-status read_generic_data_array(Buffer *buffer, Serializable *dest, size_t length, deserialize deserializer);
+status read_generic_data_array(buffer *buffer, serializable *dest, size_t length, deserialize deserializer);
 
 
 

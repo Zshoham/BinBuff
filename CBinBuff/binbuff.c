@@ -31,7 +31,7 @@ reverse memory copy - copies length bytes from the memory pointed to
  */
 static void* rev_memcpy(void *dest, const void *src, size_t length)
 {
-    char *d = dest + length - 1;
+    char *d = (char*)dest + length - 1;
     const char *s = src;
     while (length--)
         *d-- = *s++;
@@ -46,7 +46,7 @@ size - the size of the memory that needs to be available.
 
 returns status { BUFFER_OVERFLOW, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-static status alloc_buffer(Buffer *buffer, size_t size)
+static status alloc_buffer(buffer *buffer, const size_t size)
 {
 	if(buffer->size - buffer->next_pointer < size)
 	{
@@ -70,7 +70,7 @@ size - size of the data to be written.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-static status serialize_data(Buffer *buffer, void *data, size_t size)
+static status serialize_data(buffer *buffer, void *data, const size_t size)
 {
 	if (!buffer) return FAILURE;
 	if (!data) return FAILURE;
@@ -81,8 +81,8 @@ static status serialize_data(Buffer *buffer, void *data, size_t size)
 
 	if (buffer->big_endian)
         dest = memcpy(dest + buffer->next_pointer, data, size);
-    else
-        dest = rev_memcpy(dest + buffer->next_pointer, data, size);
+    else 
+		dest = rev_memcpy(dest + buffer->next_pointer, data, size);
 
     if (!dest) return FAILURE;
 	buffer->next_pointer += size;
@@ -99,7 +99,7 @@ size - size of the data to be read.
 
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-static status deserialize_data(Buffer *buffer, void *dest, size_t size)
+static status deserialize_data(buffer *buffer, void *dest, const size_t size)
 {
 	if (!buffer) return FAILURE;
 	if (!dest) return FAILURE;
@@ -121,7 +121,7 @@ static status deserialize_data(Buffer *buffer, void *dest, size_t size)
 
 #pragma region BUFFER
 
-Buffer* create_dynamic_buffer(size_t initial_size, status *status)
+buffer* create_dynamic_buffer(const size_t initial_size, status *status)
 {
 	if (initial_size < 1)
 	{
@@ -129,7 +129,7 @@ Buffer* create_dynamic_buffer(size_t initial_size, status *status)
 		return NULL;
 	}
 
-	Buffer *res = (Buffer*)malloc(sizeof(struct s_buffer));
+	buffer *res = (buffer*)malloc(sizeof(struct s_buffer));
 	if(!res)
 	{
 		*status = FAILURE;
@@ -154,9 +154,9 @@ Buffer* create_dynamic_buffer(size_t initial_size, status *status)
     return res;
 }
 
-Buffer* create_buffer(type type, status *status)
+buffer* create_buffer(const type type, status *status)
 {
-	Buffer *res = (Buffer*)malloc(sizeof(struct s_buffer));
+	buffer *res = (buffer*)malloc(sizeof(struct s_buffer));
 	if (!res)
 	{
 		*status = FAILURE;
@@ -180,7 +180,7 @@ Buffer* create_buffer(type type, status *status)
 	return res;
 }
 
-Buffer* create_static_buffer(size_t size, status *status)
+buffer* create_static_buffer(const size_t size, status *status)
 {
 	if (size < 1)
 	{
@@ -188,7 +188,7 @@ Buffer* create_static_buffer(size_t size, status *status)
 		return NULL;
 	}
 
-	Buffer *res = (Buffer*)malloc(sizeof(struct s_buffer));
+	buffer *res = (buffer*)malloc(sizeof(struct s_buffer));
 	if (!res)
 	{
 		*status = FAILURE;
@@ -212,7 +212,7 @@ Buffer* create_static_buffer(size_t size, status *status)
     return res;
 }
 
-status set_mode_read(Buffer *buffer)
+status set_mode_read(buffer *buffer)
 {
 	void *tmp = realloc(buffer->data, buffer->size);
 	if (!tmp) return FAILURE;
@@ -222,22 +222,22 @@ status set_mode_read(Buffer *buffer)
 	return SUCCESS;
 }
 
-status set_mode_write(Buffer* buffer, type type)
+status set_mode_write(buffer* buffer, const type type)
 {
 	if(type == DYNAMIC) 
 	{
 		void *tmp = realloc(buffer->data, buffer->size + DEFAULT_BUFFER_SIZE);
 		if (!tmp) return FAILURE;
 		buffer->data = tmp;
-
 	}
 	buffer->mode = WRITE;
 	buffer->type = type;
 	buffer->next_pointer = buffer->size;
+	buffer->size = buffer->size + DEFAULT_BUFFER_SIZE;
 	return SUCCESS;
 }
 
-void close_buffer(Buffer **buffer)
+void close_buffer(buffer **buffer)
 {
 	free((*buffer)->data);
 	free(*buffer);
@@ -250,42 +250,42 @@ void close_buffer(Buffer **buffer)
 
 #pragma region INTEGER
 
-status write_char(Buffer* buffer, char data)
+status write_char(buffer* buffer, char data)
 {
 	return serialize_data(buffer, &data, sizeof(data));
 }
 
-status write_char_array(Buffer* buffer, char* data, size_t length)
+status write_char_array(buffer* buffer, char* data, const size_t length)
 {
 	return serialize_data(buffer, data, sizeof(*data) * length);
 }
 
-status write_short(Buffer* buffer, short data)
+status write_short(buffer* buffer, short data)
 {
 	return serialize_data(buffer, &data, sizeof(data));
 }
 
-status write_short_array(Buffer* buffer, short* data, size_t length)
+status write_short_array(buffer* buffer, short* data, const size_t length)
 {
 	return serialize_data(buffer, data, sizeof(*data) * length);
 }
 
-status write_int(Buffer* buffer, int data)
+status write_int(buffer* buffer, int data)
 {
 	return serialize_data(buffer, &data, sizeof(data));
 }
 
-status write_int_array(Buffer* buffer, int* data, size_t length)
+status write_int_array(buffer* buffer, int* data, const size_t length)
 {
 	return serialize_data(buffer, data, sizeof(*data) * length);
 }
 
-status write_long(Buffer* buffer, long data)
+status write_long(buffer* buffer, long data)
 {
 	return serialize_data(buffer, &data, sizeof(data));
 }
 
-status write_long_array(Buffer* buffer, long* data, size_t length)
+status write_long_array(buffer* buffer, long* data, const size_t length)
 {
 	return serialize_data(buffer, data, sizeof(*data) * length);
 }
@@ -294,22 +294,22 @@ status write_long_array(Buffer* buffer, long* data, size_t length)
 
 #pragma region FLOATING POINT
 
-status write_float(Buffer* buffer, float data)
+status write_float(buffer* buffer, float data)
 {
 	return serialize_data(buffer, &data, sizeof(data));
 }
 
-status write_float_array(Buffer* buffer, float* data, size_t length)
+status write_float_array(buffer* buffer, float* data, const size_t length)
 {
 	return serialize_data(buffer, data, sizeof(*data) * length);
 }
 
-status write_double(Buffer* buffer, double data)
+status write_double(buffer* buffer, double data)
 {
 	return serialize_data(buffer, &data, sizeof(data));
 }
 
-status write_double_array(Buffer* buffer, double* data, size_t length)
+status write_double_array(buffer* buffer, double* data, const size_t length)
 {
 	return serialize_data(buffer, data, sizeof(*data) * length);
 }
@@ -318,17 +318,17 @@ status write_double_array(Buffer* buffer, double* data, size_t length)
 
 #pragma region GENERIC
 
-status write_data(Buffer* buffer, void* data, size_t size)
+status write_data(buffer* buffer, void* data, const size_t size)
 {
 	return serialize_data(buffer, data, size);
 }
 
-status write_generic_data(Buffer* buffer, Serializable data, serialize serializer)
+status write_generic_data(buffer* buffer, serializable data, const serialize serializer)
 {
 	return serializer(buffer, data);
 }
 
-status write_generic_data_array(Buffer* buffer, Serializable *data, size_t length, serialize serializer)
+status write_generic_data_array(buffer* buffer, serializable *data, const size_t length, const serialize serializer)
 {
 	status s = SUCCESS;
 	size_t i = 0;
@@ -350,42 +350,42 @@ status write_generic_data_array(Buffer* buffer, Serializable *data, size_t lengt
 
 #pragma region INTEGER
 
-status read_char(Buffer *buffer, char *dest)
+status read_char(buffer *buffer, char *dest)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest));
 }
 
-status read_char_array(Buffer *buffer, char *dest, size_t length)
+status read_char_array(buffer *buffer, char *dest, const size_t length)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest) * length);
 }
 
-status read_short(Buffer *buffer, short *dest)
+status read_short(buffer *buffer, short *dest)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest));
 }
 
-status read_short_array(Buffer *buffer, short *dest, size_t length)
+status read_short_array(buffer *buffer, short *dest, const size_t length)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest) * length);
 }
 
-status read_int(Buffer *buffer, int *dest)
+status read_int(buffer *buffer, int *dest)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest));
 }
 
-status read_int_array(Buffer *buffer, int *dest, size_t length)
+status read_int_array(buffer *buffer, int *dest, const size_t length)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest) * length);
 }
 
-status read_long(Buffer *buffer, long *dest)
+status read_long(buffer *buffer, long *dest)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest));
 }
 
-status read_long_array(Buffer *buffer, long *dest, size_t length)
+status read_long_array(buffer *buffer, long *dest, const size_t length)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest) * length);
 }
@@ -394,22 +394,22 @@ status read_long_array(Buffer *buffer, long *dest, size_t length)
 
 #pragma region FLOATING POINT
 
-status read_float(Buffer *buffer, float *dest)
+status read_float(buffer *buffer, float *dest)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest));
 }
 
-status read_float_array(Buffer *buffer, float *dest, size_t length)
+status read_float_array(buffer *buffer, float *dest, const size_t length)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest) * length);
 }
 
-status read_double(Buffer *buffer, double *dest)
+status read_double(buffer *buffer, double *dest)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest));
 }
 
-status read_double_array(Buffer *buffer, double *dest, size_t length)
+status read_double_array(buffer *buffer, double *dest, const size_t length)
 {
 	return deserialize_data(buffer, dest, sizeof(*dest) * length);
 }
@@ -418,17 +418,17 @@ status read_double_array(Buffer *buffer, double *dest, size_t length)
 
 #pragma region GENERIC
 
-status read_data(Buffer* buffer, void* dest, size_t size)
+status read_data(buffer* buffer, void* dest, const size_t size)
 {
 	return deserialize_data(buffer, dest, size);
 }
 
-status read_generic_data(Buffer *buffer, Serializable dest, deserialize deserializer)
+status read_generic_data(buffer *buffer, serializable dest, const deserialize deserializer)
 {
 	return deserializer(buffer, dest);
 }
 
-status read_generic_data_array(Buffer *buffer, Serializable *dest, size_t length, deserialize deserializer)
+status read_generic_data_array(buffer *buffer, serializable *dest, const size_t length, const deserialize deserializer)
 {
 	status s = SUCCESS;
 	unsigned int i = 0;

@@ -28,7 +28,7 @@ void* Buffer::rev_memcpy(void *dest, const void *src, size_t length)
     return dest;
 }
 
-Buffer::Buffer(type type, const std::size_t &size)
+Buffer::Buffer(const TYPE type, const std::size_t &size)
 {
 	if (size < 1) throw std::length_error("buffer buffer_size must be greater than 1.");
 	this->buffer_data = malloc(size);
@@ -44,7 +44,7 @@ Buffer::Buffer(const Buffer& other)
 {
 	this->buffer_data = malloc(other.buffer_size);
     if (!buffer_data) throw std::runtime_error("filed to allocate buffer.");
-    if (!std::memcpy(this->buffer_data, other.buffer_data, other.buffer_size))
+    if (!std::memcpy(this->buffer_data, other.buffer_data, other.next_pointer))
         throw std::runtime_error("failed to write buffer_data into buffer.");
 
 	this->buffer_size = other.buffer_size;
@@ -129,18 +129,19 @@ void Buffer::set_mode_read()
 	this->next_pointer = 0;
 }
 
-void Buffer::set_mode_write(type type)
+void Buffer::set_mode_write(const TYPE type, const size_t extra_size)
 {
 	if (this->buffer_mode == WRITE) return;
 	if (type == DYNAMIC)
 	{
-		void *tmp = realloc(this->buffer_data, this->buffer_size + DEFAULT_BUFFER_SIZE);
+		void *tmp = realloc(this->buffer_data, this->buffer_size + extra_size);
 		if (!tmp) throw std::runtime_error("failed to reallocate buffer space.");
 		this->buffer_data = tmp;
 	}
 	this->buffer_mode = WRITE;
 	this->buffer_type = type;
 	this->next_pointer = this->buffer_size;
+	this->buffer_size = buffer_size + extra_size;
 }
 
 
@@ -214,7 +215,7 @@ void Buffer::write_generic(const void* data, const std::size_t &size)
 }
 
 
-void Buffer::read_generic(void* dest, std::size_t size)
+void Buffer::read_generic(void* dest, const std::size_t size)
 {
 	if (!buffer_data) throw std::runtime_error("trying to read data into a null pointer.");
 	if (this->buffer_mode == WRITE)
@@ -248,7 +249,7 @@ std::ifstream& operator>>(std::ifstream& stream, Buffer& buffer)
 	stream.seekg(0, std::ifstream::beg);
 
 	buffer.next_pointer = 0;
-	const Buffer::type p_type = buffer.buffer_type;
+	const Buffer::TYPE p_type = buffer.buffer_type;
 	buffer.buffer_type = Buffer::DYNAMIC;
 	buffer.alloc_buffer(buffer.buffer_size);
 

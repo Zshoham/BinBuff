@@ -9,13 +9,13 @@ bool test_primitive()
 	short s = 1;
 	int i = 2;
 	long l = 3;
-	float f = 3.1;
+	float f = 3.1f;
 	double d = 3.2;
 
 	bool res = true;
 	status status;
-	Buffer *dbuf = create_dynamic_buffer(16, &status);
-	Buffer *sbuf = create_static_buffer(256, &status);
+	buffer *dbuf = create_dynamic_buffer(16, &status);
+	buffer *sbuf = create_static_buffer(256, &status);
 
 	write_char(dbuf, c);
 	write_short(dbuf, s);
@@ -79,8 +79,8 @@ bool test_primitive_array()
 
 	bool res = true;
 	status status;
-	Buffer *dbuf = create_dynamic_buffer(16, &status);
-	Buffer *sbuf = create_static_buffer(256, &status);
+	buffer *dbuf = create_dynamic_buffer(16, &status);
+	buffer *sbuf = create_static_buffer(256, &status);
 
 	write_char_array(dbuf, c, 4);
 	write_short_array(dbuf, s, 4);
@@ -165,7 +165,7 @@ bool comp_game(const Game *g1, const Game *g2)
 	return g1->height == g2->height && g1->width == g2->width && comp_player(g1->player, g2->player);
 }
 
-status serialize_player(Buffer *buffer, Serializable player)
+status serialize_player(buffer *buffer, serializable player)
 {
 	Player *p = (Player *)player;
 	status status = SUCCESS;
@@ -176,7 +176,7 @@ status serialize_player(Buffer *buffer, Serializable player)
 	return status;
 }
 
-status deserialize_player(Buffer *buffer, Serializable player)
+status deserialize_player(buffer *buffer, serializable player)
 {
 	Player *p = (Player *)player;
 	status status = SUCCESS;
@@ -187,7 +187,7 @@ status deserialize_player(Buffer *buffer, Serializable player)
 	return status;
 }
 
-status serialize_game(Buffer *buffer, Serializable game)
+status serialize_game(buffer *buffer, serializable game)
 {
 	Game *g = (Game *)game;
 	status status = SUCCESS;
@@ -198,7 +198,7 @@ status serialize_game(Buffer *buffer, Serializable game)
 	return status;
 }
 
-status deserialize_game(Buffer *buffer, Serializable game)
+status deserialize_game(buffer *buffer, serializable game)
 {
 	Game *g = (Game *)game;
 	status status = SUCCESS;
@@ -226,8 +226,8 @@ bool test_generic()
 
 	bool res = true;
 	status status;
-	Buffer *dbuf = create_dynamic_buffer(16, &status);
-	Buffer *sbuf = create_static_buffer(256, &status);
+	buffer *dbuf = create_dynamic_buffer(16, &status);
+	buffer *sbuf = create_static_buffer(256, &status);
 
 	write_generic_data(dbuf, &player, serialize_player);
 	write_generic_data(sbuf, &player, serialize_player);
@@ -280,13 +280,13 @@ bool test_generic_array()
 
 	bool res = true;
 	status status;
-	Buffer *dbuf = create_dynamic_buffer(16, &status);
-	Buffer *sbuf = create_static_buffer(4096, &status);
+	buffer *dbuf = create_dynamic_buffer(16, &status);
+	buffer *sbuf = create_static_buffer(4096, &status);
 
-	write_generic_data_array(dbuf, (Serializable*)players, 5, serialize_player);
-	write_generic_data_array(sbuf, (Serializable*)players, 5, serialize_player);
-	write_generic_data_array(dbuf, (Serializable*)games, 5, serialize_game);
-	write_generic_data_array(sbuf, (Serializable*)games, 5, serialize_game);
+	write_generic_data_array(dbuf, (serializable*)players, 5, serialize_player);
+	write_generic_data_array(sbuf, (serializable*)players, 5, serialize_player);
+	write_generic_data_array(dbuf, (serializable*)games, 5, serialize_game);
+	write_generic_data_array(sbuf, (serializable*)games, 5, serialize_game);
 
 	Player *dnp[5], *snp[5];
 	Game *dng[5], *sng[5];
@@ -302,10 +302,10 @@ bool test_generic_array()
 	set_mode_read(dbuf);
 	set_mode_read(sbuf);
 
-	read_generic_data_array(dbuf, (Serializable*)dnp, 5, deserialize_player);
-	read_generic_data_array(dbuf, (Serializable*)dng, 5, deserialize_game);
-	read_generic_data_array(sbuf, (Serializable*)snp, 5, deserialize_player);
-	read_generic_data_array(sbuf, (Serializable*)sng, 5 ,deserialize_game);
+	read_generic_data_array(dbuf, (serializable*)dnp, 5, deserialize_player);
+	read_generic_data_array(dbuf, (serializable*)dng, 5, deserialize_game);
+	read_generic_data_array(sbuf, (serializable*)snp, 5, deserialize_player);
+	read_generic_data_array(sbuf, (serializable*)sng, 5 ,deserialize_game);
 
 	for(int i = 0; i < 5; i++)
 	{

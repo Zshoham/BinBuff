@@ -69,7 +69,7 @@ public class Buffer {
 		this.type = other.type;
 		this.mode = other.mode;
 		this.data = new byte[other.data.length];
-		this.data = Arrays.copyOf(other.data, other.data.length);
+		System.arraycopy(other.data, 0, this.data, 0, this.pointer);
 	}
 
 	/**

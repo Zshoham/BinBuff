@@ -22,22 +22,22 @@ namespace binbuff
 class Buffer
 {
 public:
-	enum type { DYNAMIC, STATIC };
-	enum mode { READ, WRITE };
+	enum TYPE { DYNAMIC, STATIC };
+	enum MODE { READ, WRITE };
 
 private:
 	void *buffer_data;
 	std::size_t buffer_size;
 	std::size_t next_pointer;
-	type buffer_type;
-	mode buffer_mode;
+	TYPE buffer_type;
+	MODE buffer_mode;
 
     const int endianness_test = 1;
     const bool is_big_endian = (*((char *)&endianness_test)) != 1;
 
     void alloc_buffer(const std::size_t &size);
 
-    void* rev_memcpy(void *dest, const void *src, size_t length);
+	static void* rev_memcpy(void *dest, const void *src, size_t length);
 
 	template <class T>
 	void write(const T &data, std::true_type)
@@ -93,7 +93,7 @@ private:
 	}
 	
 	template<class T>
-	void read_container(T &dest, size_t length, std::true_type)
+	void read_container(T &dest, const size_t length, std::true_type)
 	{
 		static_assert(is_readable_container<T>::value, "trying to read into unreadable container.");
 		typedef typename remove_inner_const<typename T::value_type>::type value_type;
@@ -106,7 +106,7 @@ private:
 	}
 	
 	template<class T>
-	void read_container(T &dest, size_t length, std::false_type)
+	void read_container(T &dest, const size_t length, std::false_type)
 	{
 		typedef typename remove_inner_const<typename T::value_type>::type value_type;
 		for (size_t i = 0; i < length; ++i)
@@ -134,7 +134,7 @@ public:
 	 * \param type the type of the buffer that will be created {DYNAMIC, STATIC}
 	 * \param size the initial size of the buffer that will be created.
 	 */
-	explicit Buffer(type type, const std::size_t &size = DEFAULT_BUFFER_SIZE);
+	explicit Buffer(TYPE type, const std::size_t &size = DEFAULT_BUFFER_SIZE);
 
 	Buffer(const Buffer& other);
 	Buffer(Buffer&& other) noexcept;
@@ -147,7 +147,7 @@ public:
 	void set_mode_read();
 
 	//sets the buffer to write mode, and sets the type of the buffer.
-	void set_mode_write(type type);
+	void set_mode_write(TYPE type, size_t extra_size = DEFAULT_BUFFER_SIZE);
 
 	bool operator==(const Buffer& other) const;
 	bool operator!=(const Buffer& other) const;
@@ -567,7 +567,7 @@ void Buffer::read(T* dest, const std::size_t &length, std::false_type)
 }
 
 template <class T>
-void Buffer::read(T** dest, std::size_t length)
+void Buffer::read(T** dest, const std::size_t length)
 {
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
     if (!dest) throw std::runtime_error("trying to read buffer_data into null");
@@ -593,7 +593,7 @@ void Buffer::read(std::array<T, length>& dest)
 }
 
 template <class T>
-void Buffer::read(std::forward_list<T>& dest, size_t length)
+void Buffer::read(std::forward_list<T>& dest, const size_t length)
 {
 	static_assert(is_deserializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	std::stack<T> s_tmp;
@@ -611,7 +611,7 @@ void Buffer::read(std::forward_list<T>& dest, size_t length)
 }
 
 template <class T>
-void Buffer::read(std::stack<T>& dest, size_t length)
+void Buffer::read(std::stack<T>& dest, const size_t length)
 {
 	static_assert(is_deserializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	for (size_t i = 0; i < length; ++i)
@@ -623,7 +623,7 @@ void Buffer::read(std::stack<T>& dest, size_t length)
 }
 
 template <class T>
-void Buffer::read(std::queue<T>& dest, size_t length)
+void Buffer::read(std::queue<T>& dest, const size_t length)
 {
 	static_assert(is_deserializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	for (size_t i = 0; i < length; ++i)
