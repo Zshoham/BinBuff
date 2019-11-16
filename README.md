@@ -1,28 +1,22 @@
-# Serializer
+# BinBuff
 
-Simple and minimalistic library that provides binary serialization in `C` , `C++` `C#` and `java`.
+Simple and minimalistic library that provides binary serialization in  [`C`](https://github.com/Zshoham/BinBuff/tree/master/CBinBuff
+)  , [`C++`](https://github.com/Zshoham/BinBuff/tree/master/CppBinBuff) [`C#`](https://github.com/Zshoham/BinBuff/tree/master/CsBinBuff) and [`Java`](https://github.com/Zshoham/BinBuff/tree/master/JBinBuff).
 
-All implementations support the same basic API decrined here.
+All implementations support the same basic API described here.
 
-## Supported Functionality
----
+## Abstract API
+The library uses a `Buffer` to serialize and deserialize data, the buffer holds the data written into it and can be set to write or read mode. 
 
-The library uses a `Buffer` to serilaize and desirealize data, the buffer holds the data written into it and can be set to write or read mode. </br>
+* once in read mode the buffer cannot be written into and only read operations may be preformed. 
 
-* once in read mode the buffer cannot be written into and only read operations may be preformed. </br>
-
-* in write mode write operations will be possible **as well as read operations**. </br>
+* in write mode, only write operations will be possible. 
   When in write mode the buffer may also be either dynamic or static.
-
-  * Dynamic Buffer - will adapt its size to the data being inserted into it.
   
-  * Static Buffer - has a set size that cannot change and trying to write into it over its size limit will result in an error.
-
-Note that **trying to write into a buffer set to read mode or reading from a buffer set to write mode will result in an error**. </br>
-Lastly the buffers data may be converted at any time to a `"byte array"` implementation varies between langueges. 
-
-
-
+* Dynamic Buffer - will adapt its size to the data being inserted into it.
+  
+* Static Buffer - has a set size that cannot change and trying to write into it over its size limit will result in an error.
+  
 * Creating a buffer :
   
   * create a dynamic buffer in write mode.
@@ -34,13 +28,11 @@ Lastly the buffers data may be converted at any time to a `"byte array"` impleme
 * Write into buffer : 
   
   * Write primitive data types into the buffer.
-
-  * Write array types into the buffer.
-
-  * Write generic data types into the buffer. </br>
-    Note that in `C` generic data type refers simply to a `void*` type that may refer to any data type. </br> In other 
-    languages the abiity to write objects is supported.
-
+  
+* Write array types into the buffer.
+  * Write generic data types into the buffer,
+  this means that any type can be serialized using a custom serializer, though some types are supported 'out of the box'.
+  
 * Read from buffer :
   
   * Read primitive data types from buffer.
@@ -48,10 +40,44 @@ Lastly the buffers data may be converted at any time to a `"byte array"` impleme
   * Read array types from buffer, given array to read to and desired length.
   
   * Read generic data types from buffer.
+  Note that usually a type being deserializable is a stronger constraint than being serializable
+    and so a type might be serializable but not deserializable. 
+  
+  Reading from a buffer will return the data that was read and but will now remove it from the buffer.
 
-  Reading from a buffer will return the data that was read and remove it from the buffer.
+## Pseudocode Usage
 
-Documentation and examples for the different implementations of the library may be found in the following links :
+this is an example usage that uses pseudocode to demonstrate the how to library is to be used:
+
+```pseudocode
+Person {
+	id;
+	age;
+	// some more fiels..
+}
+
+person_serializer(person, buffer):
+	buffer.write(id);
+	buffer.write(age);
+	// write all the fields..
+
+...
+// program that does creates some data for a person object
+Person person = aquire_person()
+// now we want to save this person's data
+Buffer buffer = make_buffer(type = dynamic)
+buffer.write(person)
+save_to_file(buffer.get_bytes())
+...
+// later we want to retrive the data and create a person
+Buffer buffer = make_buffer(load_data())
+buffer.set_read()
+Person new_person() // empty person
+buffer.read(new_person)
+//now new_person has the same state that person had before the serialization.
+```
+
+Documentation and examples for the different implementations of the library may be found in the respective folders or in these links:
 
 * [*C implementation*]()
 

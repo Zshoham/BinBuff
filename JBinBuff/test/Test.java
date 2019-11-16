@@ -15,16 +15,12 @@ public class Test {
     private static final String ANSI_CYAN = "\u001B[36m";
     private static final String ANSI_WHITE = "\u001B[37m";
 
-   private static int BENCHMARK_OPTION; //0;    // all
-                                                //1;      // final
-                                                //2;    //overall
+    // set to on of the values {0 - all, 1 - final, 2 - overall} for different levels of information.
+    private static int BENCHMARK_OPTION =   0;    // all
+                                            //1;    // final
+                                            //2;    //overall
 
     public static void main(String[] args) {
-        if (args.length == 2) {
-            BENCHMARK_OPTION = Integer.parseInt(args[1]);
-        }
-        else BENCHMARK_OPTION = 0;
-
         if (!testPrimitive()) System.out.println(ANSI_RED + "failed primitive test." + ANSI_RESET);
         else if (!testPrimitiveArray()) System.out.println(ANSI_RED + "failed primitive array test." + ANSI_RESET);
         else if (!testSerializable()) System.out.println(ANSI_RED + "failed serializable test." + ANSI_RESET);
@@ -32,20 +28,18 @@ public class Test {
         else if (!testMaps()) System.out.println(ANSI_RED + "failed maps test." + ANSI_RESET);
         else System.out.println(ANSI_GREEN + "all tests passed." + ANSI_RESET);
 
-        benchmarkWrite("write in memory", Test::benchmarkWriteInMemory);
-        benchmarkWrite("write on disk", Test::benchmarkWriteOnDisk);
-        benchmarkReadArray("read array in memory", Test::benchmarkReadInMemoryArray);
-        benchmarkReadArray("read array on disk", Test::benchmarkReadOnDiskArray);
-        benchmarkReadCollection("read collection in memory", Test::benchmarkReadInMemoryCollection);
-        benchmarkReadCollection("read collection on disk", Test::benchmarkReadOnDiskCollection);
-        benchmarkReadMap("read map in memory", Test::benchmarkReadInMemoryMap);
-        benchmarkReadMap("read map on disk", Test::benchmarkReadOnDiskMap);
+        // uncomment the benchmarks that you want to run.
+//        benchmarkWrite("write in memory", Test::benchmarkWriteInMemory);
+//        benchmarkWrite("write on disk", Test::benchmarkWriteOnDisk);
+//        benchmarkReadArray("read array in memory", Test::benchmarkReadInMemoryArray);
+//        benchmarkReadArray("read array on disk", Test::benchmarkReadOnDiskArray);
+//        benchmarkReadCollection("read collection in memory", Test::benchmarkReadInMemoryCollection);
+//        benchmarkReadCollection("read collection on disk", Test::benchmarkReadOnDiskCollection);
+//        benchmarkReadMap("read map in memory", Test::benchmarkReadInMemoryMap);
+//        benchmarkReadMap("read map on disk", Test::benchmarkReadOnDiskMap);
 
         System.out.println(ANSI_RED + "average time saved - " + overallTimeSaved / benchmarkCounter);
     }
-
-    private static double overallTimeSaved = 0;
-    private static int benchmarkCounter = 0;
 
     private static boolean testPrimitive() {
         byte b = 127;
@@ -278,6 +272,10 @@ public class Test {
 
         return res;
     }
+
+    private static double overallTimeSaved = 0;
+
+    private static int benchmarkCounter = 0;
 
 
     private interface writeBenchmark {
