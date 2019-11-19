@@ -20,23 +20,71 @@ public class Test {
                                             //1;    // final
                                             //2;    //overall
 
+    private static String usage = "usage: [Log] [Benchmarks]\n" +
+            "Log Level: \n" +
+            "\t0 - all\n" +
+            "\t1 - final\n" +
+            "\t2 - overall\n" +
+            "Benchmarks:\n" +
+            "\tformat is wm-wd-ram-rad-rcm-rcd-rmm-rmd\n" +
+            "\twm - is write in memory\n" +
+            "\twd - is write in disk\n" +
+            "\tram - is read array in memory\n" +
+            "\trad - is read array in disk\n" +
+            "\trcm - is read collection in memory\n" +
+            "\trcd - is read collection in disk\n" +
+            "\trmm - is read map in memory\n" +
+            "\trmd - is read map in disk\n" +
+            "\tin order to activate on of the benchmarks set the appropriate value to 1, " +
+            "for example to activate all the benchmarks use 11111111";
+
     public static void main(String[] args) {
-        if (!testPrimitive()) System.out.println(ANSI_RED + "failed primitive test." + ANSI_RESET);
-        else if (!testPrimitiveArray()) System.out.println(ANSI_RED + "failed primitive array test." + ANSI_RESET);
-        else if (!testSerializable()) System.out.println(ANSI_RED + "failed serializable test." + ANSI_RESET);
-        else if (!testCollections()) System.out.println(ANSI_RED + "failed collections test." + ANSI_RESET);
-        else if (!testMaps()) System.out.println(ANSI_RED + "failed maps test." + ANSI_RESET);
+        String benchmark = "";
+        int option = -1;
+        if (args.length > 3){
+            System.out.println(usage);
+            System.exit(0);
+        }
+        else if (args.length == 1) {
+            benchmark = "11111111";
+            option = Integer.valueOf(args[0]);
+        }
+        else if (args.length == 2) {
+            option = Integer.valueOf(args[0]);
+            benchmark = args[1];
+        }
+
+        if (option < 0 || option > 2) {
+            System.out.println("[ERROR]: invalid log level " + option + "\n" + usage);
+            System.exit(0);
+        }
+        BENCHMARK_OPTION = option;
+
+        if(benchmark.length() != 8) {
+            System.out.println("[ERROR]: invalid benchmarks " + benchmark + "\n" + usage);
+            System.exit(0);
+        }
+
+        boolean test = true;
+        if (!(test = test && testPrimitive())) System.out.println(ANSI_RED + "failed primitive test." + ANSI_RESET);
+        else if (!(test = test && testPrimitiveArray())) System.out.println(ANSI_RED + "failed primitive array test." + ANSI_RESET);
+        else if (!(test = test && testSerializable())) System.out.println(ANSI_RED + "failed serializable test." + ANSI_RESET);
+        else if (!(test = test && testCollections())) System.out.println(ANSI_RED + "failed collections test." + ANSI_RESET);
+        else if (!(test = test && testMaps())) System.out.println(ANSI_RED + "failed maps test." + ANSI_RESET);
         else System.out.println(ANSI_GREEN + "all tests passed." + ANSI_RESET);
 
-        // uncomment the benchmarks that you want to run.
-//        benchmarkWrite("write in memory", Test::benchmarkWriteInMemory);
-//        benchmarkWrite("write on disk", Test::benchmarkWriteOnDisk);
-//        benchmarkReadArray("read array in memory", Test::benchmarkReadInMemoryArray);
-//        benchmarkReadArray("read array on disk", Test::benchmarkReadOnDiskArray);
-//        benchmarkReadCollection("read collection in memory", Test::benchmarkReadInMemoryCollection);
-//        benchmarkReadCollection("read collection on disk", Test::benchmarkReadOnDiskCollection);
-//        benchmarkReadMap("read map in memory", Test::benchmarkReadInMemoryMap);
-//        benchmarkReadMap("read map on disk", Test::benchmarkReadOnDiskMap);
+        if (!test)
+            System.exit(0);
+
+        //comment out the benchmarks that you do not want to run.
+        if (benchmark.charAt(0) == '1') benchmarkWrite("write in memory", Test::benchmarkWriteInMemory);
+        if (benchmark.charAt(1) == '1') benchmarkWrite("write on disk", Test::benchmarkWriteOnDisk);
+        if (benchmark.charAt(2) == '1') benchmarkReadArray("read array in memory", Test::benchmarkReadInMemoryArray);
+        if (benchmark.charAt(3) == '1') benchmarkReadArray("read array on disk", Test::benchmarkReadOnDiskArray);
+        if (benchmark.charAt(4) == '1') benchmarkReadCollection("read collection in memory", Test::benchmarkReadInMemoryCollection);
+        if (benchmark.charAt(5) == '1') benchmarkReadCollection("read collection on disk", Test::benchmarkReadOnDiskCollection);
+        if (benchmark.charAt(6) == '1') benchmarkReadMap("read map in memory", Test::benchmarkReadInMemoryMap);
+        if (benchmark.charAt(7) == '1') benchmarkReadMap("read map on disk", Test::benchmarkReadOnDiskMap);
 
         System.out.println(ANSI_RED + "average time saved - " + overallTimeSaved / benchmarkCounter);
     }
@@ -647,7 +695,8 @@ public class Test {
         double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0)
+            System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
                 "BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +

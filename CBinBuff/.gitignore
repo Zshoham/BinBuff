@@ -1,5 +1,2 @@
-*
-!*.h
-!*.c
-!.gitignore
-!CMakeLists.txt
+build/
+.idea/

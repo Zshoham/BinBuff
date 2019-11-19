@@ -13,6 +13,10 @@
 .idea/**/dictionaries
 .idea/**/shelf
 
+# Artifacts
+.idea/artifacts
+META-INF/
+
 # Generated files
 .idea/**/contentModel.xml
 
