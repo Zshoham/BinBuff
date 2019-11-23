@@ -3,7 +3,7 @@ import com.binbuff.Buffer;
 import java.io.*;
 import java.util.*;
 
-public class Test {
+public class Benchmark {
 
     private static final String ANSI_RESET = "\u001B[0m";
     private static final String ANSI_BLACK = "\u001B[30m";
@@ -16,9 +16,9 @@ public class Test {
     private static final String ANSI_WHITE = "\u001B[37m";
 
     // set to on of the values {0 - all, 1 - final, 2 - overall} for different levels of information.
-    private static int BENCHMARK_OPTION =   0;    // all
-                                            //1;    // final
-                                            //2;    //overall
+    private static int BENCHMARK_OPTION = 0;    // all
+                                        //1;    // final
+                                        //2;    //overall
 
     private static String usage = "usage: [Log] [Benchmarks]\n" +
             "Log Level: \n" +
@@ -77,14 +77,14 @@ public class Test {
             System.exit(0);
 
         //comment out the benchmarks that you do not want to run.
-        if (benchmark.charAt(0) == '1') benchmarkWrite("write in memory", Test::benchmarkWriteInMemory);
-        if (benchmark.charAt(1) == '1') benchmarkWrite("write on disk", Test::benchmarkWriteOnDisk);
-        if (benchmark.charAt(2) == '1') benchmarkReadArray("read array in memory", Test::benchmarkReadInMemoryArray);
-        if (benchmark.charAt(3) == '1') benchmarkReadArray("read array on disk", Test::benchmarkReadOnDiskArray);
-        if (benchmark.charAt(4) == '1') benchmarkReadCollection("read collection in memory", Test::benchmarkReadInMemoryCollection);
-        if (benchmark.charAt(5) == '1') benchmarkReadCollection("read collection on disk", Test::benchmarkReadOnDiskCollection);
-        if (benchmark.charAt(6) == '1') benchmarkReadMap("read map in memory", Test::benchmarkReadInMemoryMap);
-        if (benchmark.charAt(7) == '1') benchmarkReadMap("read map on disk", Test::benchmarkReadOnDiskMap);
+        if (benchmark.charAt(0) == '1') benchmarkWrite("write in memory", Benchmark::benchmarkWriteInMemory);
+        if (benchmark.charAt(1) == '1') benchmarkWrite("write on disk", Benchmark::benchmarkWriteOnDisk);
+        if (benchmark.charAt(2) == '1') benchmarkReadArray("read array in memory", Benchmark::benchmarkReadInMemoryArray);
+        if (benchmark.charAt(3) == '1') benchmarkReadArray("read array on disk", Benchmark::benchmarkReadOnDiskArray);
+        if (benchmark.charAt(4) == '1') benchmarkReadCollection("read collection in memory", Benchmark::benchmarkReadInMemoryCollection);
+        if (benchmark.charAt(5) == '1') benchmarkReadCollection("read collection on disk", Benchmark::benchmarkReadOnDiskCollection);
+        if (benchmark.charAt(6) == '1') benchmarkReadMap("read map in memory", Benchmark::benchmarkReadInMemoryMap);
+        if (benchmark.charAt(7) == '1') benchmarkReadMap("read map on disk", Benchmark::benchmarkReadOnDiskMap);
 
         System.out.println(ANSI_RED + "average time saved - " + overallTimeSaved / benchmarkCounter);
     }
@@ -327,7 +327,7 @@ public class Test {
 
 
     private interface writeBenchmark {
-       <T> double run(T data, String description);
+        <T> double run(T data, String description);
     }
 
     private interface readArrayBenchmark {
@@ -696,13 +696,13 @@ public class Test {
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
         if (BENCHMARK_OPTION <= 0)
-            System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
-                "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
-                ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
-                "BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
-                "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
-                ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
-                ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
+            System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+                    "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
+                    ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
+                    "BinBuff.com.BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                    "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
+                    ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
+                    ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
 
         overallTimeSaved += avgTimeOOS - avgTimeBUF;
         benchmarkCounter++;
@@ -764,10 +764,10 @@ public class Test {
         double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
-                "BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                "BinBuff.com.BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
                 "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
                 ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
@@ -831,7 +831,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -842,6 +842,7 @@ public class Test {
         return runTimeImprove;
     }
 
+    @SuppressWarnings("unchecked")
     private static <T> double benchmarkReadInMemoryCollection(Collection<T> data, String description, Collection<T> read, Class<T> type) {
 
         int iterations = 1000;
@@ -880,6 +881,7 @@ public class Test {
 
                 // read object stream
                 timer.start();
+
                 read = (Collection<T>) ois.readObject();
                 ois.close();
                 res = timer.stop();
@@ -895,7 +897,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -906,6 +908,7 @@ public class Test {
         return runTimeImprove;
     }
 
+    @SuppressWarnings("unchecked")
     private static <K, V> double benchmarkReadInMemoryMap(Map<K, V> data, String description, Map<K, V> read, Class<K> kType, Class<V> vType) {
 
         int iterations = 1000;
@@ -961,7 +964,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -1044,8 +1047,8 @@ public class Test {
                 maxTimeOIS = Math.max(res, maxTimeOIS);
                 avgTimeOIS = (avgTimeOIS * i + res) / (i + 1);
 
-               bufFIS.close();
-               oisFIS.close();
+                bufFIS.close();
+                oisFIS.close();
             }
             catch (Exception e) { e.printStackTrace(); }
         }
@@ -1055,7 +1058,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -1066,6 +1069,7 @@ public class Test {
         return runTimeImprove;
     }
 
+    @SuppressWarnings("unchecked")
     private static <T> double benchmarkReadOnDiskCollection(Collection<T> data, String description, Collection<T> read, Class<T> type) {
 
         int iterations = 1000;
@@ -1136,8 +1140,8 @@ public class Test {
                 maxTimeOIS = Math.max(res, maxTimeOIS);
                 avgTimeOIS = (avgTimeOIS * i + res) / (i + 1);
 
-	            bufFIS.close();
-	            oisFIS.close();
+                bufFIS.close();
+                oisFIS.close();
             }
             catch (Exception e) { e.printStackTrace(); }
         }
@@ -1147,7 +1151,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -1158,6 +1162,7 @@ public class Test {
         return runTimeImprove;
     }
 
+    @SuppressWarnings("unchecked")
     private static <K, V> double benchmarkReadOnDiskMap(Map<K, V> data, String description, Map<K, V> read, Class<K> kType, Class<V> vType) {
         int iterations = 1000;
         System.out.println("running Read benchmark on " + ANSI_YELLOW +  description + ANSI_RESET + " (" + iterations + " iterations)...");
@@ -1241,7 +1246,7 @@ public class Test {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);

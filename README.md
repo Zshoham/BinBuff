@@ -61,19 +61,24 @@ person_serializer(person, buffer):
 	buffer.write(age);
 	// write all the fields..
 
+person_deserializer(person, buffer):
+	buffer.read(id);
+	buffer.read(age);
+	// read all the fields
+
 ...
 // program that does creates some data for a person object
 Person person = aquire_person()
 // now we want to save this person's data
 Buffer buffer = make_buffer(type = dynamic)
-buffer.write(person)
+buffer.write(person, person_serializer)
 save_to_file(buffer.get_bytes())
 ...
 // later we want to retrive the data and create a person
 Buffer buffer = make_buffer(load_data())
 buffer.set_read()
 Person new_person() // empty person
-buffer.read(new_person)
+buffer.read(new_person, person_deserializer)
 //now new_person has the same state that person had before the serialization.
 ```
 

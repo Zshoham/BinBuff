@@ -1,8 +1,7 @@
 # BinBuff Java Implementation
 
 This is the java implementation of BinBuff, the full documentation is available [here](https://github.com/Zshoham/BinBuff/docs).
-This project comes with test you can run on your machine along with benchmark 
-comparing the BinBuff library to the JDK Object Serialization.
+The library is build using gradle, to learn more about how to use gradle visit the [official site](https://gradle.org/)
 
 the latest release is available [here](https://github.com/Zshoham/BinBuff/releases).
 
@@ -13,19 +12,31 @@ the latest release is available [here](https://github.com/Zshoham/BinBuff/releas
 
 ## Working With Sources 
 
-This project is intellij idea based, if you have intellij then all you need to do is open this folder through intellij and everything should be set up, otherwise there should be some option in your IDE to import project from sources.
+In order to build the library run `./gradlew build` in the JBinBuff directory.
+you will find that gradle created a build directory, inside the libs directory you will find two jars have been built. The library jar and a [benchmark jar](#running-the-benchmark), as well as the test results.
+The test results can be found in `build/test-results` as an XML, 
+or in `build/reports/tests/test` as a web site, simply open the index.html file in your browser to view the results.
 
-## Running The Tests
+The build command automatically runs the test and will fail and tell you if some of the tests failed, but if you wish to independently run the tests use - `./gradlew test`.
+In addition if you wish to run the benchmarks through gradle you can use - `./gradle benchmark`,
+this will use the 0 log level and run only the in memory write benchmark, in order to use a different configuration for the benchmark use - `./gradle benchmark -Parg=[Log],[Benchmark]`.
+
+*note: all the commands assume that you are using bash like CLI that recognizes the "./" instruction, if you are using the normal windows CMD you can simply omit the "./" from all the commands and it should work fine*
+
+## Running The Benchmark
 
 In the java release of the library available [here](https://github.com/Zshoham/BinBuff/releases) you can find the library jar itself in addition to a test jar.
-in order to run the test use the command `java -jar BinBuff_Test.jar` this will run the test with all the benchmarks and all log messages, in order to use a different log level use `java -jar BinBuff_Test.jar[0|1}2]`:
+in order to run the test use the command 
+`java -jar BinBuff-[version]-Benchmark.jar [Log] [Benchmarks]` 
+this will run the test with all the benchmarks and all log messages, in order to use a different log level use
+`java -jar BinBuff-[version]-Benchmark [0|1}2]`
 
 * 0 - if you wish to see all the available information about all the benchmarks.
 * 1 - if you wish to see only the final statistics for each benchmark.
 * 2 - if you wish to see only the overall statistics from running all the benchmarks.
 
 In order to specify which tests are run use -
-`java -jar BinBuff_Test.jar[0|1}2] [wm-wd-ram-rad-rcm-rcd-rmm-rmd]`:
+`java -jar BinBuff-[version]-Benchmark.jar [0|1}2] [wm-wd-ram-rad-rcm-rcd-rmm-rmd]`
 
 * wm - is write in memory
 * wd - is write in disk

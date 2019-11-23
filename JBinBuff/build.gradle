@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+}
+
+group 'com.binbuff'
+version '1.0.0'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+jar {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                   'Implementation-Version': project.version)
+    }
+    from '..\\LICENSE.txt'
+}
+
+allprojects {
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+        }
+    }
+}
+
+sourceSets {
+    benchmark {
+        compileClasspath += main.output
+        runtimeClasspath += main.output;
+    }
+
+    test {
+        compileClasspath += main.output + benchmark.output
+        runtimeClasspath += main.output + benchmark.output
+    }
+}
+
+task benchJar(type: Jar) {
+    description 'Assembles a jar arcive containing the benchmark classes'
+    group 'build'
+    classifier 'Benchmark'
+    from sourceSets.benchmark.output.classesDirs
+    from sourceSets.main.output.classesDirs
+    manifest {
+        attributes('Main-Class': "Benchmark",
+                'Implementation-Title': project.name,
+                'Implementation-Version': project.version)
+    }
+}
+
+tasks.jar.dependsOn(benchJar)
+
+task benchmark(type: JavaExec) {
+    description 'Runs the write benchmark, add -Parg=[Log],[Benchmarks] for custom run'
+    group 'verification'
+    classpath = sourceSets.benchmark.runtimeClasspath
+    main = 'Benchmark'
+    if (project.hasProperty('arg')) {
+        args(arg.split(','))
+    }
+    else args '0', '10000000'
+}
