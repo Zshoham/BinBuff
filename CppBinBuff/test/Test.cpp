@@ -1,7 +1,8 @@
-#include "buffer.h"
+#include <gtest/gtest.h>
+
+#include <binbuff.h>
 #include "Game.h"
 #include "Player.h"
-#include <iostream>
 #include <forward_list>
 #include <list>
 #include <set>
@@ -11,9 +12,8 @@
 
 using namespace binbuff;
 
-bool test_primitive()
+TEST(BinbuffTest, Primitive)
 {
-	
 	char c = 'a';
 	bool b = true;
 	short s = 1;
@@ -22,7 +22,6 @@ bool test_primitive()
 	float f = 3.1f;
 	double d = 3.2;
 
-	bool res = true;
 	Buffer dbuf(Buffer::DYNAMIC);
 	Buffer sbuf(Buffer::STATIC, 64);
 
@@ -42,21 +41,32 @@ bool test_primitive()
 	sbuf.set_mode_read();
 
 	dbuf >> dnc >> dnb >> dns >> dni >> dnl >> dnf >> dnd;
-	
+
 	sbuf >> snc >> snb >> sns >> sni >> snl >> snf >> snd;
 
-	res = res && c == dnc && c == snc;
-	res = res && b == dnb && b == snb;
-	res = res && s == dns && s == sns;
-	res = res && i == dni && i == sni;
-	res = res && l == dnl && l == snl;
-	res = res && f == dnf && f == snf;
-	res = res && d == dnd && d == snd;
+	EXPECT_EQ(c, dnc);
+	EXPECT_EQ(c, snc);
 
-	return res;
+	EXPECT_EQ(b, dnb);
+	EXPECT_EQ(b, snb);
+
+	EXPECT_EQ(s, dns);
+	EXPECT_EQ(s, sns);
+
+	EXPECT_EQ(i, dni);
+	EXPECT_EQ(i, sni);
+
+	EXPECT_EQ(l, dnl);
+	EXPECT_EQ(l, snl);
+
+	EXPECT_EQ(f, dnf);
+	EXPECT_EQ(f, snf);
+
+	EXPECT_EQ(d, dnd);
+	EXPECT_EQ(d, snd);
 }
 
-bool test_primitive_array()
+TEST(BinbuffTest, PrimitiveArray)
 {
 	char c[4] = { 'a', 'b', 'c', 'd' };
 	bool b[4] = { true, true, false, true };
@@ -66,7 +76,6 @@ bool test_primitive_array()
 	float f[4] = { 3.1f, 3.2f, 3.3f, 3.4f };
 	double d[4] = { 3.2, 3.3, 3.4, 3.5 };
 
-	bool res = true;
 	Buffer dbuf(Buffer::DYNAMIC);
 	Buffer sbuf(Buffer::STATIC, 128);
 
@@ -104,7 +113,7 @@ bool test_primitive_array()
 	dbuf.read(dnl, 4);
 	dbuf.read(dnf, 4);
 	dbuf.read(dnd, 4);
-	
+
 	sbuf.read(snc, 4);
 	sbuf.read(snb, 4);
 	sbuf.read(sns, 4);
@@ -115,66 +124,70 @@ bool test_primitive_array()
 
 	for (int j = 0; j < 4; j++)
 	{
-		res = res && c[j] == dnc[j] && c[j] == snc[j];
-		res = res && b[j] == dnb[j] && b[j] == snb[j];
-		res = res && s[j] == dns[j] && s[j] == sns[j];
-		res = res && i[j] == dni[j] && i[j] == sni[j];
-		res = res && l[j] == dnl[j] && l[j] == snl[j];
-		res = res && f[j] == dnf[j] && f[j] == snf[j];
-		res = res && d[j] == dnd[j] && d[j] == snd[j];
+		EXPECT_EQ(c[j], dnc[j]);
+		EXPECT_EQ(c[j], snc[j]);
+
+		EXPECT_EQ(b[j], dnb[j]);
+		EXPECT_EQ(b[j], snb[j]);
+
+		EXPECT_EQ(s[j], dns[j]);
+		EXPECT_EQ(s[j], sns[j]);
+
+		EXPECT_EQ(i[j], dni[j]);
+		EXPECT_EQ(i[j], sni[j]);
+
+		EXPECT_EQ(l[j], dnl[j]); 
+		EXPECT_EQ(l[j], snl[j]);
+
+		EXPECT_EQ(f[j], dnf[j]); 
+		EXPECT_EQ(f[j], snf[j]);
+
+		EXPECT_EQ(d[j], dnd[j]);
+		EXPECT_EQ(d[j], snd[j]);
 	}
-
-	return res;
 }
 
-void w(Buffer &buffer, const Player &player) {
-    buffer << player.player_num;
-}
-
-template <typename T>
-void write(const T &data, std::function<void(Buffer&, const T&)> serializer) {
-    serializer(data, data);
-}
-
-bool test_generic()
+TEST(BinbuffTest, Generic)
 {
 	Player player(5);
 	Game game(720, 1280, 2);
 
-	bool res = true;
 	Buffer dbuf(Buffer::DYNAMIC);
 	Buffer sbuf(Buffer::STATIC, 1024);
 
 	dbuf << player << game;
 	sbuf << player << game;
 
-	auto serializer = [](Buffer &buffer, const Player &player) { buffer << player.player_num; };
+	auto serializer = [](Buffer& buffer, const Player& player) { buffer << player.player_num; };
 
 	dbuf.write<Player>(player, serializer);
 	sbuf.write<Player>(player, serializer);
-	
+
 	Player dnp, snp, dlnp, slnp;
 	Game dng, sng;
-	
+
 	dbuf.set_mode_read();
 	sbuf.set_mode_read();
 
 	dbuf >> dnp >> dng;
 	sbuf >> snp >> sng;
 
-    auto deserializer = [](Buffer &buffer, Player &player) { buffer >> player.player_num; };
+	auto deserializer = [](Buffer& buffer, Player& player) { buffer >> player.player_num; };
 
-    dbuf.read<Player>(dlnp, deserializer);
-    sbuf.read<Player>(slnp, deserializer);
+	dbuf.read<Player>(dlnp, deserializer);
+	sbuf.read<Player>(slnp, deserializer);
 
-    res = res && player == dnp && player == snp;
-	res = res && game == dng && game == sng;
-	res = res && player.player_num == dlnp.player_num && player.player_num == slnp.player_num;
+	EXPECT_EQ(player, dnp);
+	EXPECT_EQ(player, snp);
 	
-	return res;
+	EXPECT_EQ(game, dng);
+	EXPECT_EQ(game, sng);
+	
+	EXPECT_EQ(player.player_num, dlnp.player_num);
+	EXPECT_EQ(player.player_num, slnp.player_num);
 }
 
-bool test_generic_array()
+TEST(BinbuffTest, GenericArray)
 {
 	Player players[2];
 	players[0] = Player(1);
@@ -183,8 +196,6 @@ bool test_generic_array()
 	games[0] = Game(1280, 720, 1);
 	games[1] = Game(1280, 720, 2);
 
-
-	bool res = true;
 	Buffer dbuf(Buffer::DYNAMIC);
 	Buffer sbuf(Buffer::STATIC, 1024);
 
@@ -206,26 +217,24 @@ bool test_generic_array()
 
 	for (int i = 0; i < 2; ++i)
 	{
-		res = res && players[i] == dnp[i];
-		res = res && players[i] == snp[i];
-		res = res && games[i] == dng[i];
-		res = res && games[i] == sng[i];
+		EXPECT_EQ(players[i], dnp[i]);
+		EXPECT_EQ(players[i], snp[i]);
+		EXPECT_EQ(games[i], dng[i]);
+		EXPECT_EQ(games[i], sng[i]);
 	}
-
-	return res;
 }
 
-struct hash_player
+TEST(BinbuffTest, Containers)
 {
-	size_t operator()(const Player& player) const
+	struct hash_player
 	{
-		std::hash<int> hasher;
-		return hasher(player.player_num);
-	}
-};
-
-bool test_containers()
-{
+		size_t operator()(const Player& player) const
+		{
+			std::hash<int> hasher;
+			return hasher(player.player_num);
+		}
+	};
+	
 	Player p1(1);
 	Player p2(2);
 
@@ -238,23 +247,23 @@ bool test_containers()
 	std::array<Player, 2> arr;
 	arr[0] = p1;
 	arr[1] = p2;
-	
+
 	std::vector<std::shared_ptr<Game>> vec;
 	vec.push_back(std::make_shared<Game>(g1));
 	vec.push_back(std::make_shared<Game>(g2));
-	
+
 	std::deque<Player> deque;
 	deque.push_back(p1);
 	deque.push_back(p2);
-	
+
 	std::forward_list<Game> flist;
 	flist.push_front(g1);
 	flist.push_front(g2);
-	
+
 	std::list<Player*> list;
 	list.push_back(&p1);
 	list.push_back(&p1);
-	
+
 	std::set<Game> set;
 	set.insert(g1);
 	set.insert(g2);
@@ -262,24 +271,22 @@ bool test_containers()
 	std::unordered_set<Player, hash_player> uset;
 	uset.insert(p1);
 	uset.insert(p2);
-	
+
 	std::unordered_map<int, Game> umap;
 	umap.insert(std::make_pair(1, g1));
 	umap.insert(std::make_pair(2, g2));
-	
+
 	std::map<int, Player> map;
 	map[1] = p1;
 	map[2] = p2;
-	
+
 	std::stack<Game*> stack;
 	stack.push(&g1);
 	stack.push(&g2);
-	
+
 	std::queue<Player> queue;
 	queue.push(p1);
-	queue.push(p2);	
-
-	bool res = true;
+	queue.push(p2);
 
 	Buffer buf(Buffer::DYNAMIC);
 
@@ -317,37 +324,21 @@ bool test_containers()
 	buf.read(nstack, 2);
 	buf.read(nqueue, 2);
 
-	res = res && *nsp == *sp;
-	res = res && npgp == pgp;
-	res = res && narr == arr;
-	res = res && ndeque == deque;
-	res = res && nflist == flist;
-	res = res && nset == set && nmap == map && nuset == uset && numap == umap;
+	EXPECT_EQ(*nsp, *sp);
+	EXPECT_EQ(npgp, pgp);
+	EXPECT_EQ(narr, arr);
+	EXPECT_EQ(ndeque, deque);
+	EXPECT_EQ(nflist, flist);
+	EXPECT_EQ(nset ,set);
+	EXPECT_EQ(nmap ,map);
+	EXPECT_EQ(nuset ,uset);
+	EXPECT_EQ(numap ,umap);
 
 	for (int i = 0; i < 2; i++)
 	{
-		res = res && *nlist.front() == *list.front();
+		EXPECT_EQ(*nlist.front(), *list.front());
 		nlist.pop_front();
 		list.pop_front();
-		res = res && *(nvec[i]) == *(vec[i]);
+		EXPECT_EQ(*(nvec[i]), *(vec[i]));
 	}
-
-	return res;
-}
-
-int main(int argc, char* argv[])
-{
-	if (!test_primitive()) std::cout << "failed primitive serialization test." << std::endl;
-	else if (!test_primitive_array()) std::cout << "failed primitive array serialization test." << std::endl;
-	else if (!test_generic()) std::cout << "failed generic serialization test." << std::endl;
-	else if (!test_generic_array()) std::cout << "failed generic array serialization test." << std::endl;
-	else if (!test_containers()) std::cout << "failed container serialization test." << std::endl;
-	else {
-	    std::cout << "all tests passed." << std::endl;
-	    return 0;
-	}
-
-	std::cin.get();
-
-	return 1;
 }

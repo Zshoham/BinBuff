@@ -6,21 +6,17 @@ import java.util.*;
 public class Benchmark {
 
     private static final String ANSI_RESET = "\u001B[0m";
-    private static final String ANSI_BLACK = "\u001B[30m";
     private static final String ANSI_RED = "\u001B[31m";
-    private static final String ANSI_GREEN = "\u001B[32m";
     private static final String ANSI_YELLOW = "\u001B[33m";
     private static final String ANSI_BLUE = "\u001B[34m";
-    private static final String ANSI_PURPLE = "\u001B[35m";
     private static final String ANSI_CYAN = "\u001B[36m";
-    private static final String ANSI_WHITE = "\u001B[37m";
 
     // set to on of the values {0 - all, 1 - final, 2 - overall} for different levels of information.
     private static int BENCHMARK_OPTION = 0;    // all
                                         //1;    // final
                                         //2;    //overall
 
-    private static String usage = "usage: [Log] [Benchmarks]\n" +
+    private static final String USAGE = "usage: [Log] [Benchmarks]\n" +
             "Log Level: \n" +
             "\t0 - all\n" +
             "\t1 - final\n" +
@@ -42,39 +38,28 @@ public class Benchmark {
         String benchmark = "";
         int option = -1;
         if (args.length > 3){
-            System.out.println(usage);
+            System.out.println(USAGE);
             System.exit(0);
         }
         else if (args.length == 1) {
             benchmark = "11111111";
-            option = Integer.valueOf(args[0]);
+            option = Integer.parseInt(args[0]);
         }
         else if (args.length == 2) {
-            option = Integer.valueOf(args[0]);
+            option = Integer.parseInt(args[0]);
             benchmark = args[1];
         }
 
         if (option < 0 || option > 2) {
-            System.out.println("[ERROR]: invalid log level " + option + "\n" + usage);
+            System.out.println("[ERROR]: invalid log level " + option + "\n" + USAGE);
             System.exit(0);
         }
         BENCHMARK_OPTION = option;
 
         if(benchmark.length() != 8) {
-            System.out.println("[ERROR]: invalid benchmarks " + benchmark + "\n" + usage);
+            System.out.println("[ERROR]: invalid benchmarks " + benchmark + "\n" + USAGE);
             System.exit(0);
         }
-
-        boolean test = true;
-        if (!(test = test && testPrimitive())) System.out.println(ANSI_RED + "failed primitive test." + ANSI_RESET);
-        else if (!(test = test && testPrimitiveArray())) System.out.println(ANSI_RED + "failed primitive array test." + ANSI_RESET);
-        else if (!(test = test && testSerializable())) System.out.println(ANSI_RED + "failed serializable test." + ANSI_RESET);
-        else if (!(test = test && testCollections())) System.out.println(ANSI_RED + "failed collections test." + ANSI_RESET);
-        else if (!(test = test && testMaps())) System.out.println(ANSI_RED + "failed maps test." + ANSI_RESET);
-        else System.out.println(ANSI_GREEN + "all tests passed." + ANSI_RESET);
-
-        if (!test)
-            System.exit(0);
 
         //comment out the benchmarks that you do not want to run.
         if (benchmark.charAt(0) == '1') benchmarkWrite("write in memory", Benchmark::benchmarkWriteInMemory);
@@ -89,238 +74,6 @@ public class Benchmark {
         System.out.println(ANSI_RED + "average time saved - " + overallTimeSaved / benchmarkCounter);
     }
 
-    private static boolean testPrimitive() {
-        byte b = 127;
-        char c = '~';
-        boolean bl = true;
-        float f = 3.1f;
-        double d = 3.1d;
-        short s = 6874;
-        int i = -568;
-        long l = 77;
-
-        boolean res = true;
-        Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
-        Buffer sbuf = new Buffer(Buffer.TYPE.STATIC, 64);
-
-        dbuf.write(b, c, bl, f, d, s, i, l);
-        sbuf.write(b, c, bl, f, d, s, i, l);
-
-        byte dnb, snb;
-        char dnc, snc;
-        boolean dnbl, snbl;
-        float dnf, snf;
-        double dnd, snd;
-        short dns, sns;
-        int dni, sni;
-        long dnl, snl;
-
-        dbuf.setRead();
-        sbuf.setRead();
-
-        dnb = dbuf.readByte(); snb = sbuf.readByte();
-        dnc = dbuf.readChar(); snc = sbuf.readChar();
-        dnbl = dbuf.readBoolean(); snbl = sbuf.readBoolean();
-        dnf = dbuf.readFloat(); snf = sbuf.readFloat();
-        dnd = dbuf.readDouble(); snd = sbuf.readDouble();
-        dns = dbuf.readShort(); sns = sbuf.readShort();
-        dni = dbuf.readInt(); sni = sbuf.readInt();
-        dnl = dbuf.readLong(); snl = sbuf.readLong();
-
-        res = b == dnb && b == snb;
-        res = res && c == dnc && c == snc;
-        res = res && bl == dnbl && bl == snbl;
-        res = res && f == dnf && f == snf;
-        res = res && d == dnd && d == snd;
-        res = res && s == dns && s == sns;
-        res = res && i == dni && i == sni;
-        res = res && l == dnl && l == snl;
-
-
-        return res;
-    }
-
-    private static boolean testPrimitiveArray() {
-
-        byte[] b = {1, 2, 3, 4};
-        boolean[] bl = {true, false, true, false};
-        char[] c = {'a', 'b', 'c', 'd'};
-        short[] s = {100, 200, 300, 400};
-        int[] i = {100, 200, 300, 400};
-        float[] f = {1.1f, 2.2f, 3.3f, 4.4f};
-        long[] l = {100, 200, 300, 400};
-        double[] d = {1.1d, 2.2d, 3.3d, 4.4d};
-
-        boolean res = true;
-        Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
-        Buffer sbuf = new Buffer(Buffer.TYPE.STATIC, 256);
-
-        dbuf.write(b, bl, c, s, i, f, l, d);
-        sbuf.write(b, bl, c, s, i, f, l, d);
-
-        dbuf.setRead();
-        sbuf.setRead();
-
-        byte[] dnb = new byte[4], snb = new byte[4];
-        boolean[] dnbl = new boolean[4], snbl = new boolean[4];
-        char[] dnc = new char[4], snc = new char[4];
-        short[] dns = new short[4], sns = new short[4];
-        int[] dni = new int[4], sni = new int[4];
-        float[] dnf = new float[4], snf = new float[4];
-        long[] dnl = new long[4], snl = new long[4];
-        double[] dnd = new double[4], snd = new double[4];
-
-        dbuf.read(dnb, dnbl, dnc, dns, dni, dnf, dnl, dnd);
-        sbuf.read(snb, snbl, snc, sns, sni, snf, snl, snd);
-
-        for (int j = 0; j < 4; j++)
-        {
-            res = res && b[j] == dnb[j] && b[j] == snb[j];
-            res = res && bl[j] == dnbl[j] && bl[j] == snbl[j];
-            res = res && c[j] == dnc[j] && c[j] == snc[j];
-            res = res && s[j] == dns[j] && s[j] == sns[j];
-            res = res && i[j] == dni[j] && i[j] == sni[j];
-            res = res && f[j] == dnf[j] && f[j] == snf[j];
-            res = res && l[j] == dnl[j] && l[j] == snl[j];
-            res = res && d[j] == dnd[j] && d[j] == snd[j];
-        }
-
-        return res;
-    }
-
-    private static boolean testSerializable() {
-        Player player = new Player(1);
-        Game game = new Game(1200, 720, 2);
-
-        boolean res = true;
-        Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
-        Buffer sbuf = new Buffer(Buffer.TYPE.STATIC, 1024);
-
-        dbuf.write(player, game);
-        sbuf.write(player, game);
-
-        Player dnp = new Player(), snp = new Player();
-        Game dng = new Game(), sng = new Game();
-
-        dbuf.setRead();
-        sbuf.setRead();
-
-        dbuf.read(dnp, dng);
-        sbuf.read(snp, sng);
-
-        res = player.equals(dnp) && player.equals(snp);
-        res = res && game.equals(dng) && game.equals(sng);
-
-        return res;
-    }
-
-    private static boolean testCollections() {
-        Player p1 = new Player(1), p2 = new Player(2);
-        Game g1 = new Game(1280, 720, 1), g2 = new Game(1280, 720, 2);
-
-        ArrayList<Player> arrlist = new ArrayList<>(), narrlist = new ArrayList<>();
-        arrlist.add(p1);
-        arrlist.add(p2);
-
-        LinkedList<Game> llist = new LinkedList<>(), nllist = new LinkedList<>();
-        llist.add(g1);
-        llist.add(g2);
-
-        Vector<Player> vector = new Vector<>(), nvector = new Vector<>();
-        vector.add(p1);
-        vector.add(p2);
-
-        Stack<Game> stack = new Stack<>(), nstack = new Stack<>();
-        stack.push(g1);
-        stack.push(g2);
-
-        PriorityQueue<Player> pqueue = new PriorityQueue<>(), npqueue = new PriorityQueue<>();
-        pqueue.add(p1);
-        pqueue.add(p2);
-
-        ArrayDeque<Game> adeque = new ArrayDeque<>(), nadeque = new ArrayDeque<>();
-        adeque.add(g1);
-        adeque.add(g2);
-
-        HashSet<Player> hset = new HashSet<>(), nhset = new HashSet<>();
-        hset.add(p1);
-        hset.add(p2);
-
-        LinkedHashSet<Game> lhset = new LinkedHashSet<>(), nlhset = new LinkedHashSet<>();
-        lhset.add(g1);
-        lhset.add(g2);
-
-        TreeSet<Player> tset = new TreeSet<>(), ntset = new TreeSet<>();
-        tset.add(p1);
-        tset.add(p2);
-
-        boolean res = true;
-        Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
-
-        dbuf.write(arrlist, llist, vector, stack, pqueue, adeque, hset, lhset, tset);
-
-        dbuf.setRead();
-
-        dbuf.read(narrlist, Player.class, 2);
-        dbuf.read(nllist, Game.class, 2);
-        dbuf.read(nvector, Player.class, 2);
-        dbuf.read(nstack, Game.class, 2);
-        dbuf.read(npqueue, Player.class, 2);
-        dbuf.read(nadeque, Game.class, 2);
-        dbuf.read(nhset, Player.class, 2);
-        dbuf.read(nlhset, Game.class, 2);
-        dbuf.read(ntset, Player.class, 2);
-
-        res = arrlist.equals(narrlist);
-        res = res && llist.equals(nllist);
-        res = res && vector.equals(nvector);
-        res = res && stack.equals(nstack);
-        for (int i = 0; i < 2; i++) {
-            res = res && pqueue.poll().equals(npqueue.poll());
-            res = res && adeque.poll().equals(nadeque.poll());
-        }
-
-        res = res && nhset.contains(p1) && nhset.contains(p2);
-        res = res && lhset.equals(nlhset);
-        res = res && ntset.contains(p1) && ntset.contains(p2);
-
-        return res;
-    }
-
-    private static boolean testMaps() {
-        Player p1 = new Player(1), p2 = new Player(2);
-        Game g1 = new Game(1280, 720, 1), g2 = new Game(1280, 720, 2);
-
-        HashMap<Integer, Player> hmap = new HashMap<>(), nhmap = new HashMap<>();
-        hmap.put(p1.hashCode(), p1);
-        hmap.put(p2.hashCode(), p2);
-
-        LinkedHashMap<Integer, Game> lhmap = new LinkedHashMap<>(), nlhmap = new LinkedHashMap<>();
-        lhmap.put(g1.hashCode(), g1);
-        lhmap.put(g2.hashCode(), g2);
-
-        TreeMap<Player, Game> tmap = new TreeMap<>(), ntmap = new TreeMap<>();
-        tmap.put(p1, g1);
-        tmap.put(p2, g2);
-
-        boolean res = true;
-        Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
-
-        dbuf.write(hmap, lhmap, tmap);
-
-        dbuf.setRead();
-
-        dbuf.read(nhmap, Integer.class, Player.class, 2);
-        dbuf.read(nlhmap, Integer.class, Game.class, 2);
-        dbuf.read(ntmap, Player.class, Game.class, 2);
-
-        res = hmap.equals(nhmap);
-        res = res && lhmap.equals(nlhmap);
-        res = res && tmap.equals(ntmap);
-
-        return res;
-    }
-
     private static double overallTimeSaved = 0;
 
     private static int benchmarkCounter = 0;
@@ -331,7 +84,7 @@ public class Benchmark {
     }
 
     private interface readArrayBenchmark {
-        <T> double run(Object data, String description, Object read);
+        <T> double run(T data, String description, T read);
     }
 
     private interface readCollectionBenchmark {

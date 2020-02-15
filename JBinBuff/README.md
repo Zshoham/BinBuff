@@ -13,9 +13,7 @@ the latest release is available [here](https://github.com/Zshoham/BinBuff/releas
 ## Working With Sources 
 
 In order to build the library run `./gradlew build` in the JBinBuff directory.
-you will find that gradle created a build directory, inside the libs directory you will find two jars have been built. The library jar and a [benchmark jar](#running-the-benchmark), as well as the test results.
-The test results can be found in `build/test-results` as an XML, 
-or in `build/reports/tests/test` as a web site, simply open the index.html file in your browser to view the results.
+you will find that gradle created a build directory, inside the libs directory you will find two jars have been built. The library jar and a [benchmark jar](#Running The Benchmark).
 
 The build command automatically runs the test and will fail and tell you if some of the tests failed, but if you wish to independently run the tests use - `./gradlew test`.
 In addition if you wish to run the benchmarks through gradle you can use - `./gradle benchmark`,
