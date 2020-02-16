@@ -27,7 +27,7 @@ target_include_directories(binbuff PUBLIC
 )
 
 install(
-    TARGETS binbuff binbuff_test
+    TARGETS binbuff
     COMPONENT binbuff
     CONFIGURATIONS Debug
     ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/bin/Debug/${CMAKE_SYSTEM_NAME}
@@ -36,7 +36,7 @@ install(
 )
 
 install(
-    TARGETS binbuff binbuff_test
+    TARGETS binbuff
     COMPONENT binbuff
     CONFIGURATIONS Release
     ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/bin/Release/${CMAKE_SYSTEM_NAME}

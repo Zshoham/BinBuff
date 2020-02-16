@@ -8,7 +8,12 @@ import shutil
 import subprocess
 from subprocess import CalledProcessError
 
-parser = argparse.ArgumentParser(description='Configure Binbuff c++ implementation')
+# project constants:
+project_name = "Binbuff c++ implementation"
+cmake_component = "binbuff"
+
+
+parser = argparse.ArgumentParser(description=f'Configure {project_name}')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-r', '--reconfigure', action='store_true', help='force reconfiguration of the project (does not update delete googletest)')
 group.add_argument('-c', '--clean', action='store_true', help='clean the build system and dependencies')
@@ -50,8 +55,12 @@ def run_cmake():
 def cmake_build(config):
     show(f"building project with {config} configuration", "INFO")
     os.chdir('build')
-    subprocess.run(['cmake', '--build', '.', '--target', 'ALL_BUILD', '--config', config])
-    subprocess.run(['cmake', '-DCOMPONENT=binbuff', '-DBUILD_TYPE='+config, '-P', 'cmake_install.cmake'])
+    if platform.system() == "Windows":
+        subprocess.run(['cmake', '--build', '.', '--target', 'ALL_BUILD', '--config', config])
+        subprocess.run(['cmake', f'-DCOMPONENT={cmake_component}', '-DBUILD_TYPE='+config, '-P', 'cmake_install.cmake'])
+    else:
+        subprocess.run(['cmake', '--build', '.'])
+        subprocess.run(['cmake', f'-DCOMPONENT={cmake_component}', '-DBUILD_TYPE='+config, '-P', 'cmake_install.cmake'])
     os.chdir(project_dir)
     show(f"{config} build is complete", "SUCCESS")
 
@@ -68,7 +77,7 @@ def cmake_test(config):
 
     os.chdir(platform.system())
     test_file = [f for f in os.listdir() if 'test' in f][0]
-    subprocess.run(test_file)
+    subprocess.run(f"{os.getcwd()}/{test_file}")
     os.chdir(project_dir)
 
 def show(text, type):
