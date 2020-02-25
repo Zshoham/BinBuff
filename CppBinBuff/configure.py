@@ -90,7 +90,7 @@ def show(text, type):
     BOLD = '\033[1m'
 
     COLOR = 0
-    if type == "INFO":     COLOR = INFO
+    if type == "INFO":      COLOR = INFO
     if type == "SUCCESS":   COLOR = SUCCESS
     if type == "WARNING":   COLOR = WARNING
     if type == "ERROR":     COLOR = ERROR
@@ -98,6 +98,7 @@ def show(text, type):
     print(f"{COLOR}[{type}]:{ENDC} {BOLD}{text}{ENDC}")
 
 if __name__ == '__main__':
+    os.system('')
     args = parser.parse_args()
 
     build = os.path.isdir('build')

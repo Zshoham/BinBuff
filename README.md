@@ -6,48 +6,41 @@ Simple and minimalistic library that provides binary serialization in  [`C`](htt
 All implementations support the same basic API described here.
 
 ## Abstract API
-The library uses a `Buffer` to serialize and deserialize data, the buffer holds the data written into it and can be set to write or read mode. 
 
-* once in read mode the buffer cannot be written into and only read operations may be preformed. 
+The library uses a `Buffer` to serialize and deserialize data, the buffer holds the data written into it and can be set to write or read mode.
 
-* in write mode, only write operations will be possible. 
-  When in write mode the buffer may also be either dynamic or static.
-  
-* Dynamic Buffer - will adapt its size to the data being inserted into it.
-  
-* Static Buffer - has a set size that cannot change and trying to write into it over its size limit will result in an error.
-  
-* Creating a buffer :
-  
-  * create a dynamic buffer in write mode.
-  
-  * create a static buffer in write mode.
-  
-  * create buffer from byte array in write mode.
+- once in read mode the buffer cannot be written into and only read operations may be performed.
 
-* Write into buffer : 
-  
-  * Write primitive data types into the buffer.
-  
-* Write array types into the buffer.
-  * Write generic data types into the buffer,
-  this means that any type can be serialized using a custom serializer, though some types are supported 'out of the box'.
-  
-* Read from buffer :
-  
-  * Read primitive data types from buffer.
-  
-  * Read array types from buffer, given array to read to and desired length.
-  
-  * Read generic data types from buffer.
-  Note that usually a type being deserializable is a stronger constraint than being serializable
-    and so a type might be serializable but not deserializable. 
-  
-  Reading from a buffer will return the data that was read and but will now remove it from the buffer.
+- in write mode, only write operations will be possible. When in write mode the buffer may also be either dynamic or static.
+
+- Dynamic Buffer - will adapt its size to the data being inserted into it.
+
+- Static Buffer - has a set size that cannot change and trying to write into it over its size limit will result in an error.
+
+- Creating a buffer:
+
+- - create a dynamic buffer in write mode.
+  - create a static buffer in write mode.
+  - create a buffer from byte array in write mode.
+
+- Write into the buffer :
+
+- - Write primitive data types into the buffer.
+  - Write array types into the buffer.
+
+- - Write generic data types into the buffer, this means that any type can be serialized using a custom serializer, though some types are supported 'out of the box'.
+
+- Read from buffer :
+
+- - Read primitive data types from a buffer.
+  - Read array types from a buffer, given array to read to and desired length.
+  - Read generic data types from a buffer. Note that usually a type being deserializable is a stronger constraint than being serializable and so a type might be serializable but not deserializable.
+
+- Reading from a buffer will return the data that was read and will remove it from the buffer.
 
 ## Pseudocode Usage
 
-this is an example usage that uses pseudocode to demonstrate the how to library is to be used:
+this is an example usage that uses pseudocode to demonstrate how the library is to be used:
 
 ```pseudocode
 Person {
@@ -67,7 +60,7 @@ person_deserializer(person, buffer):
 	// read all the fields
 
 ...
-// program that does creates some data for a person object
+// program that creates some data for a person object
 Person person = aquire_person()
 // now we want to save this person's data
 Buffer buffer = make_buffer(type = dynamic)

@@ -28,8 +28,8 @@ namespace binbuff
 * why would a type be serializable and not deserializable ?
 * Well it should'nt if it is possible always use a deserializable type it is the same as a serializable type
 * only it has an empty constructor which is useful when initializing an instance for reading.
-* The reason a distinction is made is that to serializing does not require the constructor, and thus it is
-* possible to have a type that only serializable which you would write using this version of the library,
+* The reason a distinction is made is that serializing does not require the constructor, and thus it is
+* possible to have a type that is only serializable which you would write using this version of the library,
 * and then read using a different version, or alternatively read the data into a different type.
 * The same distinction is made for writable and readable containers.
 *
@@ -372,7 +372,7 @@ struct default_construct
  * Defines a serializable type i.e type T is called serializable if and only if is_serializable<T>::value is true.
  *                                                                                                                     
  * let type T be called primitive serializable if one of the following applies:
- * *    T is a primitive type or more specifically T needs to satisfies is_arithmetic<T>
+ * *    T is a primitive type or more specifically T satisfies is_arithmetic<T>
  * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.
  *                                                                                                                     
  * let type T be serializable if it is primitive serializable or one of the following:
@@ -387,7 +387,7 @@ struct is_serializable : std::integral_constant<bool, impl::is_serializable<T>::
 /**
  * Defines a deserializable type i.e type T is called deserializable if and only if is_deserializable<T>::value is true.<br>
  *
- * let type T be called deserializable if it is also a serializable as defined above, and it has
+ * let type T be called deserializable if it is serializable, as defined above, and it has
  * an empty constructor, more specifically if it satisfies is_default_constructable<T>
  */
 template<class T>
@@ -398,13 +398,13 @@ struct is_deserializable : std::integral_constant<bool, impl::is_deserializable<
 *
 * The iterator definition is very simple and it is based on the definition in the standard library.
 * Note that this definition does not require the value type of the iterator to be serializable
-* that responsibility falls on the container being iterated.
+* that responsibility falls on the container on which the iterator operates.
 * 
 * let Itr be an iterator if all of the following apply:
 * * Itr defines copy assignment operator. (itr and o being of type Itr the following should be valid 'itr = o')
 * * Itr can be compared using equality/inequality operators.
 *   (itr1 and itr2 being of type Itr the following should be valid 'itr == itr2', 'itr1 != itr2')
-* * Itr can be dereference as an rvalue. (itr being of type Itr the following should be valid '*itr', 'itr->x')
+* * Itr can be dereferenced as an rvalue. (itr being of type Itr the following should be valid '*itr', 'itr->x')
 * * Itr can be incremented using the ++ operator. (itr being of type Itr the following should be valid '++itr')
 */
 template<class Itr>
@@ -448,7 +448,7 @@ struct is_readable_container : std::integral_constant<bool, impl::is_readable_as
 /**
  * Defines a sequential readable container type i.e type C is called a sequential readable container if and only if is_readable_sequential<C>::value is true.
  * 
- * A sequential readable container needs to define the insert method so that it accepts an iterator and a value_type,
+ * A sequential readable container needs to define the insert(iterator, value_type) method so that it accepts an iterator and a value_type,
  * the iterator pointing to the position in the container where the insertion should be made
  * and the value type being the value that should be inserted.
  */
@@ -458,7 +458,7 @@ struct is_readable_sequential : std::integral_constant<bool, impl::is_readable_s
 /**
 * Defines an associative readable container type i.e type C is called a associative readable container if and only if is_readable_sequential<C>::value is true.
 *
-* A sequential readable container needs to define the insert method so that it accepts a value_type,
+* A sequential readable container needs to define the insert(value_type) method so that it accepts a value_type,
 * the value type being usually a key value pair representing the new mapping being added to the container.
 */
 template<typename C>

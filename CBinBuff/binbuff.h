@@ -49,6 +49,28 @@ returns the created buffer, also the status { BUFFER_UNDERFLOW, FAILURE, SUCCESS
 buffer *create_static_buffer(size_t size, status *status);
 
 /*
+Creates a new static buffer of size - `size`
+containing the first 'size' bytes of memory that 'data' points to.
+The buffer is created in read mode.
+Note that buffer size less then 1 is not allowed.
+Note that in a new buffer is created and the data is copied into it, in order
+to insure that the memory pointed to by 'data' will not be corrupted.
+status - pointer to status that will hold the status of the function after its competition.
+
+returns the created buffer, also the status { BUFFER_UNDERFLOW, FAILURE, SUCCESS }.
+*/
+buffer* create_read_buffer(void* data, size_t size, status* status);
+
+/*
+Similar to the above constructor, only it builds the buffer on top of the
+provided 'data' without allocating new memory, this might be dangerous if later
+this buffer will turn to write mode, it could change the data pointed to by 'data'
+
+returns the created buffer, also the status { BUFFER_UNDERFLOW, FAILURE, SUCCESS }.
+*/
+buffer* create_read_buffer_unsafe(void* data, size_t size, status* status);
+
+/*
 Changes the mode of `buffer` to read.
 Note that reading after calling this function will result in a read beginning from the start of the buffer.
 
@@ -62,6 +84,38 @@ Changes the mode of `buffer` to write setting its type to be `type`.
 returns status { FAILURE, SUCCESS } indicating the completion status of the function.
  */
 status set_mode_write(buffer* buffer, type type);
+
+/*
+Moves the read/write pointer of the buffer by adding 'amount' to the current pointer.
+In order to move the pointer backwards set amount to a negative value.
+note: that the pointer could be moved past the last byte that was written into
+space that was allocated but is not written, because of this it is not recommended
+changing the pointer while in WRITE mode.
+ */
+status seek(buffer *buffer, int amount);
+
+/*
+Moves the read/write pointer to the start of the buffer (index 0).
+Writing after a rewind will overwrite the data in the buffer,
+this makes the rewind equivalent to clear operation.
+ */
+void buffer_rewind(buffer* buffer);
+
+/*
+Returns a pointer to the underlying buffer holding the data, note that this is a pointer
+to the same memory managed by the buffer, it could be dangerous to use, in addition
+note that the allocated size is most likely larger then the number of bytes written to the buffer
+as the buffer preallocates memory.
+ */
+void* get_serialized(buffer* buffer, status* status);
+
+/*
+Returns a pointer to memory holding the serialized data, similar to the above get method
+only this method clones the memory held by the buffer, and cuts it fit the serialized data exactly
+making the pointer safer to use, but costing the additional memory and time for the cloning.
+ */
+void* clone_serialized(buffer* buffer, status* status);
+
 
 //Closes the buffer that `buffer` points to and releases all the memory associated with it.
 void close_buffer(buffer **buffer);

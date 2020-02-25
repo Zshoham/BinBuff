@@ -212,6 +212,67 @@ buffer* create_static_buffer(const size_t size, status *status)
     return res;
 }
 
+buffer* create_read_buffer(void* data, const size_t size, status* status)
+{
+	if (size < 1)
+	{
+		*status = BUFFER_UNDERFLOW;
+		return NULL;
+	}
+
+	buffer* res = (buffer*)malloc(sizeof(struct s_buffer));
+	if (!res)
+	{
+		*status = FAILURE;
+		return NULL;
+	}
+
+	res->data = malloc(size);
+	if (!res->data)
+	{
+		*status = FAILURE;
+		free(res);
+		return NULL;
+	}
+	memcpy(res->data, data, size);
+	
+	res->size = size;
+	res->next_pointer = 0;
+	res->type = STATIC;
+	res->mode = READ;
+	*status = SUCCESS;
+	res->big_endian = is_big_endian();
+
+	return res;
+}
+
+buffer* create_read_buffer_unsafe(void* data, size_t size, status* status)
+{
+	if (size < 1)
+	{
+		*status = BUFFER_UNDERFLOW;
+		return NULL;
+	}
+
+	buffer* res = (buffer*)malloc(sizeof(struct s_buffer));
+	if (!res)
+	{
+		*status = FAILURE;
+		return NULL;
+	}
+
+	res->data = data;
+	res->size = size;
+	res->next_pointer = 0;
+	res->type = STATIC;
+	res->mode = READ;
+	*status = SUCCESS;
+	res->big_endian = is_big_endian();
+
+	return res;
+}
+
+
 status set_mode_read(buffer *buffer)
 {
 	void *tmp = realloc(buffer->data, buffer->size);
@@ -222,7 +283,7 @@ status set_mode_read(buffer *buffer)
 	return SUCCESS;
 }
 
-status set_mode_write(buffer* buffer, const type type)
+status set_mode_write(buffer *buffer, const type type)
 {
 	if(type == DYNAMIC) 
 	{
@@ -235,6 +296,46 @@ status set_mode_write(buffer* buffer, const type type)
 	buffer->next_pointer = buffer->size;
 	buffer->size = buffer->size + DEFAULT_BUFFER_SIZE;
 	return SUCCESS;
+}
+
+status seek(buffer* buffer, const int amount)
+{
+	if (buffer->size < buffer->next_pointer + amount)
+		return BUFFER_OVERFLOW;
+
+	if (amount < 0 && ((buffer->next_pointer + amount) > buffer->next_pointer))
+		return BUFFER_UNDERFLOW;
+
+	buffer->next_pointer += amount;
+	return SUCCESS;
+}
+
+void buffer_rewind(buffer* buffer)
+{
+	buffer->next_pointer = 0;
+}
+
+void* get_serialized(buffer *buffer, status *status)
+{
+	return buffer->data;
+}
+
+void* clone_serialized(buffer *buffer, status *status)
+{
+	void* clone = malloc(buffer->next_pointer);
+	if (!clone)
+	{
+		*status = FAILURE;
+		return NULL;
+	}
+	memcpy(clone, buffer->data, buffer->next_pointer);
+	if (!clone)
+	{
+		*status = FAILURE;
+		return NULL;
+	}
+	
+	return clone;
 }
 
 void close_buffer(buffer **buffer)
