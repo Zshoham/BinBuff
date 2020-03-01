@@ -208,8 +208,9 @@ std::vector<unsigned char> Buffer::as_vec() const
 {
 	std::vector<unsigned char> res;
 	const unsigned char *data = static_cast<const unsigned char *>(buffer_data);
-	std::generate(res.begin(), res.end(),
-		[i = 0, &data]() mutable { return data[i++]; });
+
+	for(size_t i = 0; i < this->next_pointer; ++i)
+		res.push_back(data[i]);
 
 	return res;
 }
