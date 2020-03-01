@@ -21,7 +21,7 @@ Game::Game(const Game& other)
 	}
 	this->num_enemies = other.num_enemies;
 	this->height = other.height;
-	this->width = other.height;
+	this->width = other.width;
 }
 
 Game::~Game()

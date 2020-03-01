@@ -67,10 +67,13 @@ If the buffer is not in WRITE mode returns ILLEGAL WRITE status.
 buffer - buffer to write to.
 data - pointer to the beginning of the data to be written.
 size - size of the data to be written.
+check_endian - 	check_endian if set to false the method will not try to change the endianess of the
+				data to fit with the rest of the library, this might lead to errors when transporting
+				the data between two systems that use different endian representation.
 
 returns status { ILLEGAL_WRITE, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-static status serialize_data(buffer *buffer, void *data, const size_t size)
+static status serialize_data(buffer *buffer, void *data, const size_t size, const bool check_endian)
 {
 	if (!buffer) return FAILURE;
 	if (!data) return FAILURE;
@@ -79,7 +82,7 @@ static status serialize_data(buffer *buffer, void *data, const size_t size)
 	if ((s = alloc_buffer(buffer, size) != SUCCESS)) return s;
 	char *dest = (char*)buffer->data;
 
-	if (buffer->big_endian)
+	if (buffer->big_endian || !check_endian)
         dest = memcpy(dest + buffer->next_pointer, data, size);
     else 
 		dest = rev_memcpy(dest + buffer->next_pointer, data, size);
@@ -96,10 +99,12 @@ If the buffer is not in READ mode returns ILLEGAL READ status.
 buffer - buffer to read from.
 dest - pointer to where the data should be read into.
 size - size of the data to be read.
-
+check_endian - 	check_endian if set to false the method will not try to change the endianess of the
+	 			data to fit with the rest of the library, this might lead to errors when transporting
+	 	 		the data between two systems that use different endian representation.
 returns status { ILLEGAL_READ, FAILURE, SUCCESS } indicating the completion status of the function.
 */
-static status deserialize_data(buffer *buffer, void *dest, const size_t size)
+static status deserialize_data(buffer *buffer, void *dest, const size_t size, const bool check_endian)
 {
 	if (!buffer) return FAILURE;
 	if (!dest) return FAILURE;
@@ -107,7 +112,7 @@ static status deserialize_data(buffer *buffer, void *dest, const size_t size)
 	if (buffer->next_pointer + buffer->size < size) return BUFFER_OVERFLOW;
 	const char *src = buffer->data;
 
-	if (buffer->big_endian)
+	if (buffer->big_endian || !check_endian)
         dest = memcpy(dest, src + buffer->next_pointer, size);
     else
         dest = rev_memcpy(dest, src + buffer->next_pointer, size);
@@ -353,42 +358,72 @@ void close_buffer(buffer **buffer)
 
 status write_char(buffer* buffer, char data)
 {
-	return serialize_data(buffer, &data, sizeof(data));
+	return serialize_data(buffer, &data, sizeof(data), FALSE);
 }
 
 status write_char_array(buffer* buffer, char* data, const size_t length)
 {
-	return serialize_data(buffer, data, sizeof(*data) * length);
+	return serialize_data(buffer, data, sizeof(*data) * length, FALSE);
 }
 
 status write_short(buffer* buffer, short data)
 {
-	return serialize_data(buffer, &data, sizeof(data));
+	return serialize_data(buffer, &data, sizeof(data), TRUE);
 }
 
 status write_short_array(buffer* buffer, short* data, const size_t length)
 {
-	return serialize_data(buffer, data, sizeof(*data) * length);
+	if (buffer->big_endian)
+		return serialize_data(buffer, data, sizeof(*data) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = serialize_data(buffer, &data[i], sizeof(data[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 status write_int(buffer* buffer, int data)
 {
-	return serialize_data(buffer, &data, sizeof(data));
+	return serialize_data(buffer, &data, sizeof(data), TRUE);
 }
 
 status write_int_array(buffer* buffer, int* data, const size_t length)
 {
-	return serialize_data(buffer, data, sizeof(*data) * length);
+	if (buffer->big_endian)
+		return serialize_data(buffer, data, sizeof(*data) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = serialize_data(buffer, &data[i], sizeof(data[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 status write_long(buffer* buffer, long data)
 {
-	return serialize_data(buffer, &data, sizeof(data));
+	return serialize_data(buffer, &data, sizeof(data), TRUE);
 }
 
 status write_long_array(buffer* buffer, long* data, const size_t length)
 {
-	return serialize_data(buffer, data, sizeof(*data) * length);
+	if (buffer->big_endian)
+		return serialize_data(buffer, data, sizeof(*data) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = serialize_data(buffer, &data[i], sizeof(data[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 #pragma endregion INTEGER
@@ -397,22 +432,42 @@ status write_long_array(buffer* buffer, long* data, const size_t length)
 
 status write_float(buffer* buffer, float data)
 {
-	return serialize_data(buffer, &data, sizeof(data));
+	return serialize_data(buffer, &data, sizeof(data), TRUE);
 }
 
 status write_float_array(buffer* buffer, float* data, const size_t length)
 {
-	return serialize_data(buffer, data, sizeof(*data) * length);
+	if (buffer->big_endian)
+		return serialize_data(buffer, data, sizeof(*data) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = serialize_data(buffer, &data[i], sizeof(data[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 status write_double(buffer* buffer, double data)
 {
-	return serialize_data(buffer, &data, sizeof(data));
+	return serialize_data(buffer, &data, sizeof(data), TRUE);
 }
 
 status write_double_array(buffer* buffer, double* data, const size_t length)
 {
-	return serialize_data(buffer, data, sizeof(*data) * length);
+	if (buffer->big_endian)
+		return serialize_data(buffer, data, sizeof(*data) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = serialize_data(buffer, &data[i], sizeof(data[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 #pragma endregion FLOATING POINT
@@ -421,7 +476,7 @@ status write_double_array(buffer* buffer, double* data, const size_t length)
 
 status write_data(buffer* buffer, void* data, const size_t size)
 {
-	return serialize_data(buffer, data, size);
+	return serialize_data(buffer, data, size, TRUE);
 }
 
 status write_generic_data(buffer* buffer, serializable data, const serialize serializer)
@@ -453,42 +508,72 @@ status write_generic_data_array(buffer* buffer, serializable *data, const size_t
 
 status read_char(buffer *buffer, char *dest)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest));
+	return deserialize_data(buffer, dest, sizeof(*dest), FALSE);
 }
 
 status read_char_array(buffer *buffer, char *dest, const size_t length)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest) * length);
+	return deserialize_data(buffer, dest, sizeof(*dest) * length, FALSE);
 }
 
 status read_short(buffer *buffer, short *dest)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest));
+	return deserialize_data(buffer, dest, sizeof(*dest), TRUE);
 }
 
 status read_short_array(buffer *buffer, short *dest, const size_t length)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest) * length);
+	if (buffer->big_endian)	
+		return deserialize_data(buffer, dest, sizeof(*dest) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = deserialize_data(buffer, &dest[i], sizeof(dest[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 status read_int(buffer *buffer, int *dest)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest));
+	return deserialize_data(buffer, dest, sizeof(*dest), TRUE);
 }
 
 status read_int_array(buffer *buffer, int *dest, const size_t length)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest) * length);
+	if (buffer->big_endian)
+		return deserialize_data(buffer, dest, sizeof(*dest) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = deserialize_data(buffer, &dest[i], sizeof(dest[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 status read_long(buffer *buffer, long *dest)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest));
+	return deserialize_data(buffer, dest, sizeof(*dest), TRUE);
 }
 
 status read_long_array(buffer *buffer, long *dest, const size_t length)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest) * length);
+	if (buffer->big_endian)
+		return deserialize_data(buffer, dest, sizeof(*dest) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = deserialize_data(buffer, &dest[i], sizeof(dest[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 #pragma endregion INTEGER
@@ -497,22 +582,42 @@ status read_long_array(buffer *buffer, long *dest, const size_t length)
 
 status read_float(buffer *buffer, float *dest)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest));
+	return deserialize_data(buffer, dest, sizeof(*dest), TRUE);
 }
 
 status read_float_array(buffer *buffer, float *dest, const size_t length)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest) * length);
+	if (buffer->big_endian)
+		return deserialize_data(buffer, dest, sizeof(*dest) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = deserialize_data(buffer, &dest[i], sizeof(dest[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 status read_double(buffer *buffer, double *dest)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest));
+	return deserialize_data(buffer, dest, sizeof(*dest), TRUE);
 }
 
 status read_double_array(buffer *buffer, double *dest, const size_t length)
 {
-	return deserialize_data(buffer, dest, sizeof(*dest) * length);
+	if (buffer->big_endian)
+		return deserialize_data(buffer, dest, sizeof(*dest) * length, FALSE);
+
+	for (size_t i = 0; i < length; ++i)
+	{
+		status stat = deserialize_data(buffer, &dest[i], sizeof(dest[i]), TRUE);
+		if (stat != SUCCESS)
+			return stat;
+	}
+
+	return SUCCESS;
 }
 
 #pragma endregion FLOATING POINT
@@ -521,7 +626,7 @@ status read_double_array(buffer *buffer, double *dest, const size_t length)
 
 status read_data(buffer* buffer, void* dest, const size_t size)
 {
-	return deserialize_data(buffer, dest, size);
+	return deserialize_data(buffer, dest, size, TRUE);
 }
 
 status read_generic_data(buffer *buffer, serializable dest, const deserialize deserializer)
@@ -545,5 +650,3 @@ status read_generic_data_array(buffer *buffer, serializable *dest, const size_t 
 #pragma endregion GENERIC
 
 #pragma endregion READ
-
-

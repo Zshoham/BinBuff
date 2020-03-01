@@ -136,10 +136,10 @@ TEST(BinbuffTest, PrimitiveArray)
 		EXPECT_EQ(i[j], dni[j]);
 		EXPECT_EQ(i[j], sni[j]);
 
-		EXPECT_EQ(l[j], dnl[j]); 
+		EXPECT_EQ(l[j], dnl[j]);
 		EXPECT_EQ(l[j], snl[j]);
 
-		EXPECT_EQ(f[j], dnf[j]); 
+		EXPECT_EQ(f[j], dnf[j]);
 		EXPECT_EQ(f[j], snf[j]);
 
 		EXPECT_EQ(d[j], dnd[j]);
@@ -158,7 +158,7 @@ TEST(BinbuffTest, Generic)
 	dbuf << player << game;
 	sbuf << player << game;
 
-	auto serializer = [](Buffer& buffer, const Player& player) { buffer << player.player_num; };
+	auto serializer = [](Buffer &buffer, const Player &player) { buffer << player.player_num; };
 
 	dbuf.write<Player>(player, serializer);
 	sbuf.write<Player>(player, serializer);
@@ -172,17 +172,17 @@ TEST(BinbuffTest, Generic)
 	dbuf >> dnp >> dng;
 	sbuf >> snp >> sng;
 
-	auto deserializer = [](Buffer& buffer, Player& player) { buffer >> player.player_num; };
+	auto deserializer = [](Buffer &buffer, Player &player) { buffer >> player.player_num; };
 
 	dbuf.read<Player>(dlnp, deserializer);
 	sbuf.read<Player>(slnp, deserializer);
 
 	EXPECT_EQ(player, dnp);
 	EXPECT_EQ(player, snp);
-	
+
 	EXPECT_EQ(game, dng);
 	EXPECT_EQ(game, sng);
-	
+
 	EXPECT_EQ(player.player_num, dlnp.player_num);
 	EXPECT_EQ(player.player_num, slnp.player_num);
 }
@@ -228,13 +228,13 @@ TEST(BinbuffTest, Containers)
 {
 	struct hash_player
 	{
-		size_t operator()(const Player& player) const
+		size_t operator()(const Player &player) const
 		{
 			std::hash<int> hasher;
 			return hasher(player.player_num);
 		}
 	};
-	
+
 	Player p1(1);
 	Player p2(2);
 
@@ -260,14 +260,14 @@ TEST(BinbuffTest, Containers)
 	flist.push_front(g1);
 	flist.push_front(g2);
 
-	std::list<Player*> list;
+	std::list<Player *> list;
 	list.push_back(&p1);
 	list.push_back(&p1);
 
 	std::set<Game> set;
 	set.insert(g1);
 	set.insert(g2);
-	
+
 	std::unordered_set<Player, hash_player> uset;
 	uset.insert(p1);
 	uset.insert(p2);
@@ -280,7 +280,7 @@ TEST(BinbuffTest, Containers)
 	map[1] = p1;
 	map[2] = p2;
 
-	std::stack<Game*> stack;
+	std::stack<Game *> stack;
 	stack.push(&g1);
 	stack.push(&g2);
 
@@ -329,10 +329,10 @@ TEST(BinbuffTest, Containers)
 	EXPECT_EQ(narr, arr);
 	EXPECT_EQ(ndeque, deque);
 	EXPECT_EQ(nflist, flist);
-	EXPECT_EQ(nset ,set);
-	EXPECT_EQ(nmap ,map);
-	EXPECT_EQ(nuset ,uset);
-	EXPECT_EQ(numap ,umap);
+	EXPECT_EQ(nset, set);
+	EXPECT_EQ(nmap, map);
+	EXPECT_EQ(nuset, uset);
+	EXPECT_EQ(numap, umap);
 
 	for (int i = 0; i < 2; i++)
 	{

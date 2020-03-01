@@ -326,8 +326,7 @@ int main(int argc, char* argv[])
 	else if (!test_generic()) puts("failed generic serialization test.");
 	else if (!test_generic_array()) puts("failed generic array serialization test.");
 	else puts("all tests passed.");
-
-
+	
 	char finish = getchar();
 
 	return 0;

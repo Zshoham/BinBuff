@@ -6,6 +6,7 @@ import platform
 import stat
 import shutil
 import subprocess
+import sys
 from subprocess import CalledProcessError
 
 # project constants:
@@ -46,9 +47,9 @@ def run_cmake():
             subprocess.run(['cmake', '..', '-Dgtest_force_shared_crt=ON'])
         else:
             subprocess.run(['cmake', '..'])
-    except CalledProcessError as e:
-        show(e.output, "ERROR")
+    except:
         show("could not execute cmake generate command, please make sure cmake is installed on this machine", "ERROR")
+        exit(1)
     os.chdir(project_dir)
     show("project files generated", "SUCCESS")
 

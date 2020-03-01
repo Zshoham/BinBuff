@@ -58,7 +58,7 @@ namespace impl
 	struct remove_inner_const<std::shared_ptr<const T>> { typedef std::shared_ptr<T> type; };
 
 	template<typename T>
-	struct remove_inner_const<const T*> { typedef T* type; };
+	struct remove_inner_const<const T*> { typedef T* type; }; 
 
 	template<typename T>
 	struct construct
@@ -157,17 +157,20 @@ namespace impl
 		template<typename Itr>
 		static constexpr bool test(
 			Itr *pt,
-			typename std::remove_reference<decltype(*(*pt))>::type * = nullptr,
+			typename std::remove_reference<decltype(**pt)>::type * = nullptr,
 			typename std::remove_reference<decltype(++(*pt))>::type * = nullptr,
-			typename std::remove_reference<decltype((*pt)=(std::declval<const Itr&>()))>::type * = nullptr,
-			typename std::remove_reference<decltype((*pt)==(std::declval<Itr&>()))>::type * = nullptr,
-			typename std::remove_reference<decltype((*pt)!=(std::declval<Itr&>()))>::type * = nullptr)
+			typename std::remove_reference<decltype(*pt = std::declval<const Itr&>())>::type * = nullptr,
+			typename std::remove_reference<decltype(*pt == std::declval<Itr&>())>::type * = nullptr,
+			typename std::remove_reference<decltype(*pt != std::declval<Itr&>())>::type * = nullptr)
 		{
-			typedef decltype(*(*pt)) value_type;
+			typedef decltype(**pt) value_type;
 
-			return std::is_same<decltype((*pt) == (std::declval<Itr&>())), bool>::value &&
-				std::is_same<decltype((*pt) != (std::declval<Itr&>())), bool>::value &&
-				std::is_same<decltype(++(*pt)), Itr&>::value;
+			return std::is_same<decltype(*pt == std::declval<Itr&>()), bool>::value &&
+				std::is_same<decltype(*pt != std::declval<Itr&>()), bool>::value &&
+				std::is_same<decltype(*pt = std::declval<Itr&>()), Itr&>::value &&
+				std::is_same<decltype(++(*pt)), Itr&>::value &&
+				std::is_same<decltype(*(++(*pt))), value_type>::value;
+
 		}
 
 		template<typename Itr>
@@ -175,6 +178,8 @@ namespace impl
 		{
 			return false;
 		}
+
+		
 
 		static const bool value = test<test_type>(nullptr);
 	};
@@ -182,31 +187,10 @@ namespace impl
 	template<typename T>
 	struct is_valid_const_iterator
 	{
-        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
+        typedef typename std::remove_const<typename std::remove_reference<T>::type>::type Itr;
 
-		template<typename Itr>
-		static constexpr bool test(
-			Itr *pt,
-			typename std::remove_reference<decltype(*(*pt))>::type * = nullptr,
-            typename std::remove_reference<decltype(++(*pt))>::type * = nullptr,
-			typename std::remove_reference<decltype((*pt) = (std::declval<const Itr&>()))>::type * = nullptr,
-			typename std::remove_reference<decltype((*pt) == (std::declval<Itr&>()))>::type * = nullptr,
-			typename std::remove_reference<decltype((*pt) != (std::declval<Itr&>()))>::type * = nullptr)
-		{
-			typedef decltype(*(*pt)) value_type;
-
-			return std::is_same<decltype((*pt) == (std::declval<const Itr&>())), bool>::value &&
-				std::is_same<decltype((*pt) != (std::declval<const Itr&>())), bool>::value &&
-				std::is_same<decltype(++(*pt)), Itr&>::value;
-		}
-
-		template<typename Itr>
-		static constexpr bool test(...)
-		{
-			return false;
-		}
-
-		static const bool value = test<test_type>(nullptr);
+		static const bool value = is_valid_normal_iterator<Itr>::value &&
+			! std::is_assignable<decltype(*std::declval<Itr>()), decltype(*std::declval<Itr>())>::value;
 	};
 
 	template<typename T>
@@ -235,8 +219,8 @@ namespace impl
 				std::is_same<decltype(pt->end()), iterator>::value &&
 				std::is_same<decltype(cpt->begin()), const_iterator>::value &&
 				std::is_same<decltype(cpt->end()), const_iterator>::value &&
-				(std::is_same<decltype(**pi), value_type &>::value || std::is_same<decltype(**pi), value_type const &>::value) &&
-				std::is_same<decltype(**pci), value_type const &>::value &&
+				(std::is_same<decltype(**pi), value_type&>::value || std::is_same<decltype(**pi), const value_type&>::value) &&
+				std::is_same<decltype(**pci), const value_type&>::value &&
 				(is_valid_normal_iterator<iterator>::value || is_valid_const_iterator<iterator>::value) &&
 				is_valid_const_iterator<const_iterator>::value &&
 				is_serializable<value_type>::value;
@@ -259,32 +243,15 @@ namespace impl
 		template<typename A>
 		static constexpr bool test(
 			A * pt,
-			A const * cpt = nullptr,
-			decltype(pt->begin()) * = nullptr,
-			decltype(pt->end()) * = nullptr,
-			decltype(cpt->begin()) * = nullptr,
-			decltype(cpt->end()) * = nullptr,
 			decltype(pt->insert(std::declval<typename A::iterator>(), std::declval<typename A::value_type>())) * = nullptr,
-			decltype(pt->insert(std::declval<typename A::const_iterator>(), std::declval<typename A::value_type>())) * = nullptr,
-			typename A::iterator * pi = nullptr,
-			typename A::const_iterator * pci = nullptr,
-			typename A::value_type * pv = nullptr)
+			decltype(pt->insert(std::declval<typename A::const_iterator>(), std::declval<typename A::value_type>())) * = nullptr)
 		{
 
 			typedef typename A::iterator iterator;
 			typedef typename A::const_iterator const_iterator;
 			typedef typename A::value_type value_type;
-			return  std::is_same<decltype(pt->begin()), iterator>::value &&
-				std::is_same<decltype(pt->end()), iterator>::value &&
-				std::is_same<decltype(cpt->begin()), const_iterator>::value &&
-				std::is_same<decltype(cpt->end()), const_iterator>::value &&
-				std::is_same<decltype(pt->insert(std::declval<typename A::iterator>(), std::declval<typename A::value_type>())), iterator>::value &&
-				std::is_same<decltype(pt->insert(std::declval<typename A::const_iterator>(), std::declval<typename A::value_type>())), iterator>::value &&
-				std::is_same<decltype(**pi), value_type &>::value &&
-				std::is_same<decltype(**pci), value_type const &>::value &&
-				is_valid_normal_iterator<iterator>::value &&
-				is_valid_const_iterator<const_iterator>::value &&
-				is_deserializable<value_type>::value;
+			return std::is_same<decltype(pt->insert(std::declval<iterator>(), std::declval<value_type>())), iterator>::value &&
+				std::is_same<decltype(pt->insert(std::declval<const_iterator>(), std::declval <value_type>())), iterator > ::value;
 		}
 
 		template<typename A>
@@ -292,7 +259,7 @@ namespace impl
 			return false;
 		}
 
-		static const bool value = test<test_type>(nullptr);
+		static const bool value = is_writable_container<test_type>::value && test<test_type>(nullptr);
 
 	};
 
@@ -304,30 +271,13 @@ namespace impl
 		template<typename A>
 		static constexpr bool test(
 			A * pt,
-			A const * cpt = nullptr,
-			decltype(pt->begin()) * = nullptr,
-			decltype(pt->end()) * = nullptr,
-			decltype(cpt->begin()) * = nullptr,
-			decltype(cpt->end()) * = nullptr,
-			decltype(pt->insert(std::declval<typename A::value_type>())) * = nullptr,
-			typename A::iterator * pi = nullptr,
-			typename A::const_iterator * pci = nullptr,
-			typename A::value_type * pv = nullptr)
+			decltype(pt->insert(std::declval<typename A::value_type>())) * = nullptr)
 		{
 			typedef typename A::iterator iterator;
 			typedef typename A::const_iterator const_iterator;
 			typedef typename A::value_type value_type;
-			return  std::is_same<decltype(pt->begin()), iterator>::value &&
-				std::is_same<decltype(pt->end()), iterator>::value &&
-				std::is_same<decltype(cpt->begin()), const_iterator>::value &&
-				std::is_same<decltype(cpt->end()), const_iterator>::value &&
-				(std::is_same<decltype(pt->insert(std::declval<typename A::value_type>())), std::pair<iterator, bool>>::value ||
-					std::is_same<decltype(pt->insert(std::declval<typename A::value_type>())), iterator>::value) &&
-					(std::is_same<decltype(**pi), value_type &>::value || std::is_same<decltype(**pi), value_type const &>::value) &&
-				std::is_same<decltype(**pci), value_type const &>::value &&
-				(is_valid_normal_iterator<iterator>::value || is_valid_const_iterator<iterator>::value) &&
-				is_valid_const_iterator<const_iterator>::value &&
-				is_deserializable<value_type>::value;
+			return std::is_same<decltype(pt->insert(std::declval<value_type>())), std::pair<iterator, bool>>::value ||
+				std::is_same<decltype(pt->insert(std::declval<value_type>())), iterator>::value;
 		}
 
 
@@ -337,7 +287,7 @@ namespace impl
 			return false;
 		}
 
-		static const bool value = test<test_type>(nullptr);
+		static const bool value = is_writable_container<test_type>::value && test<test_type>(nullptr);
 
 	};
 
@@ -364,8 +314,6 @@ struct default_construct
 {
 	static T get_instance() { return impl::construct<T>::get_instance(); }
 };
-
-
 
 
 /**
@@ -413,7 +361,7 @@ struct is_valid_iterator : std::integral_constant<bool, impl::is_valid_normal_it
 /**
 * Defines a const iterator over a serializable type i.e type Itr is a const iterator in this context if and only if is_valid_const_iterator<Itr>::value is true.<br>
 *
-* The const iterator definition is the same as the other iterators with the addition that it allows to iterate over const values.
+* The const iterator definition is the same as the other iterators with the addition that it must iterate over const values.
 */
 template<class Itr>
 struct is_valid_const_iterator : std::integral_constant<bool, impl::is_valid_const_iterator<Itr>::value> {};
@@ -424,8 +372,8 @@ struct is_valid_const_iterator : std::integral_constant<bool, impl::is_valid_con
  * A writable container is simply any container of serializable types that can be serialized as a container without manual iteration.
  * 
  * let C be a writable container if all of the following apply:
- * * C defines both a valid iterator and a valid const iterator (as defined above).
- * * C defines the following methods to access an iterator pointing to the beginning of the container - begin()
+ * * C defines a valid iterator and a valid const iterator (as defined above).
+ * * C defines methods to access an iterator pointing to the beginning of the container - begin()
  *   and to access an iterator pointing to the end of the container - end().
  * * C defines a value_type that is of a serializable type (as defined above).
  */

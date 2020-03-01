@@ -3,7 +3,7 @@
 
 namespace binbuff
 {
-	
+
 class Buffer;
 
 class Serializable
@@ -13,8 +13,8 @@ public:
 	virtual ~Serializable() = default;
 
 
-	virtual void serialize(Buffer& buffer) const = 0;
-	virtual void deserialize(Buffer& buffer) = 0;
+	virtual void serialize(Buffer &buffer) const = 0;
+	virtual void deserialize(Buffer &buffer) = 0;
 };
 
 }
