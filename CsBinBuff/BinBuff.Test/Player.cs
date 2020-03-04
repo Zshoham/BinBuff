@@ -1,6 +1,6 @@
-﻿using BinBuff;
+﻿using System.Collections.Generic;
 
-namespace BinBuffTest
+namespace BinBuff.Test
 {
     class Player : ISerializable
     {

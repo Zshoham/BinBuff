@@ -1,6 +1,4 @@
-﻿using BinBuff;
-
-namespace BinBuffTest
+﻿namespace BinBuff.Test
 {
     class Game : BinBuff.ISerializable
     {

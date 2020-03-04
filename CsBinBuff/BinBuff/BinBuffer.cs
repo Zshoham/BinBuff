@@ -13,192 +13,226 @@ namespace BinBuff
         public enum Mode { READ, WRITE }
 
         /// <summary>
-        /// Writes the given data into the given binBuffer.
+        /// Writes the given data into the given buffer.
         /// </summary>
         /// <typeparam name="T"> The type of data that can be written.</typeparam>
         /// <param name="data"> The data to be written.</param>
-        /// <param name="binBuffer"> The binBuffer to write the data to.</param>
-        public delegate void Serializer<in T>(T data, BinBuffer binBuffer);
+        /// <param name="buffer"> The buffer to write the data to.</param>
+        public delegate void Serializer<in T>(T data, BinBuffer buffer);
 
         /// <summary>
-        /// Reads the data from the binBuffer into the given object 'dest'.
+        /// Reads the data from the buffer into the given object 'dest'.
         /// </summary>
         /// <typeparam name="T"> The type of object that can be read into.</typeparam>
         /// <param name="dest"> The object to read into.</param>
-        /// <param name="binBuffer"> The binBuffer to read from.</param>
-        public delegate void Deserializer<in T>(T dest, BinBuffer binBuffer);
+        /// <param name="buffer"> The buffer to read from.</param>
+        public delegate void Deserializer<in T>(T dest, BinBuffer buffer);
 
 
-        private byte[] buffer_data;
-        private uint pointer;
+        private byte[] bufferData;
+        private uint nextPointer;
         private Type type;
         private Mode mode;
 
         /// <summary>
-        /// BinBuffer copy constructor, creates new binBuffer with the same attributes of the given binBuffer.
+        /// Buffer copy constructor, creates new buffer with the same attributes of the given buffer.
         /// </summary>
         /// <param name="other"></param>
         public BinBuffer(BinBuffer other)
         {
-            this.pointer = other.pointer;
+            this.nextPointer = other.nextPointer;
             this.type = other.type;
             this.mode = other.mode;
-            this.buffer_data = new byte[other.buffer_data.Length];
-            Array.Copy(other.buffer_data, 0, this.buffer_data, 0, this.pointer);
+            this.bufferData = new byte[other.bufferData.Length];
+            Array.Copy(other.bufferData, 0, this.bufferData, 0, this.nextPointer);
         }
 
         /// <summary>
-        /// Create an empty binBuffer in write mode.
+        /// Create an empty buffer in write mode.
         /// </summary>
-        /// <param name="type"> The type of the binBuffer. </param>
-        /// <param name="size"> The initial size of the binBuffer. </param>
+        /// <param name="type"> The type of the buffer. </param>
+        /// <param name="size"> The initial size of the buffer. </param>
         public BinBuffer(Type type, uint size = 32)
         {
-            this.buffer_data = new byte[size];
+            this.bufferData = new byte[size];
             this.type = type;
             this.mode = Mode.WRITE;
         }
 
         /// <summary>
-        /// Creates a binBuffer with the contents of the given stream, the binBuffer is created in read mode.
+        /// Creates a buffer with the contents of the given stream, the buffer is created in read mode.
         /// </summary>
-        /// <param name="stream"> The stream to create a binBuffer from.</param>
-        /// <param name="count"></param>
+        /// <param name="stream"> The stream to create a buffer from.</param>
+        /// <param name="count"> Number of bytes to read from the Stream.</param>
         public BinBuffer(Stream stream, int count = -1)
         {
             this.mode = Mode.READ;
             this.type = Type.STATIC;
             if (count == -1) count = (int)stream.Length - (int)stream.Position;
-            this.buffer_data = new byte[count];
-            stream.Read(buffer_data, 0, count);
+            this.bufferData = new byte[count];
+            stream.Read(bufferData, 0, count);
+            this.nextPointer = (uint) count;
         }
 
         /// <summary>
-        /// Sets the binBuffer into read mode, resizing the binBuffer to fit the used space and making it static.
+        /// Creates buffer containing the provided data, the buffer is created in read mode.
+        /// </summary>
+        /// <param name="data"> the data the buffer will contain. </param>
+        /// <param name="offset"> offset from which to start writing the data into the buffer. (default is 0)</param>
+        /// <param name="count"> number of bytes that will be written to the buffer or -1 to write all bytes. (default is -1) </param>
+        public BinBuffer(byte[] data, int offset = 0, int count = -1)
+        {
+            this.mode = Mode.READ;
+            this.type = Type.STATIC;
+            if (count == -1) count = data.Length;
+            this.bufferData = new byte[count];
+            Array.Copy(data, offset, this.bufferData, 0, count);
+            this.nextPointer = (uint) count;
+
+        }
+
+        /// <summary>
+        /// Sets the buffer into read mode, resizing the buffer to fit the used space and making it static.
         /// </summary>
         public void SetRead()
         {
             if (this.mode == Mode.READ) return;
-            if (pointer + 1 != this.buffer_data.Length) Array.Resize(ref this.buffer_data, (int)pointer + 1);
+            if (nextPointer != this.bufferData.Length) Array.Resize(ref this.bufferData, (int)nextPointer);
             this.mode = Mode.READ;
             this.type = Type.STATIC;
-            this.pointer = 0;
+            this.nextPointer = 0;
         }
 
         /// <summary>
-        /// Sets the binBuffer into write mode, 
+        /// Sets the buffer into write mode, 
         /// </summary>
-        /// <param name="newType"> The desired type of the binBuffer once in read mode.</param>
-        /// <param name="extraSize"> The additional size that will be allocated for the binBuffer once in read mode.</param>
+        /// <param name="newType"> The desired type of the buffer once in read mode.</param>
+        /// <param name="extraSize"> The additional size that will be allocated for the buffer once in read mode.</param>
         public void SetWrite(Type newType, int extraSize = 32)
         {
             if (this.mode == Mode.WRITE) return;
             this.mode = Mode.WRITE;
             this.type = newType;
-            this.pointer = (uint)this.buffer_data.Length;
-            Array.Resize(ref this.buffer_data, this.buffer_data.Length + extraSize);
+            this.nextPointer = (uint)this.bufferData.Length;
+            Array.Resize(ref this.bufferData, this.bufferData.Length + extraSize);
         }
 
         /// <summary>
-        /// Reads data from the given stream into the binBuffer.
+        /// Reads data from the given stream into the buffer.
         /// </summary>
         /// <param name="stream"> The stream to read from.</param>
-        /// <param name="count"> The number of bytes that should be read from the stream into the binBuffer, if count = -1 the stream will be read to its end.</param>
-        /// <param name="concat"> Boolean value indicating whether or not the data read from the stream should be concatenated to the binBuffer or override the data already in the binBuffer.</param>
+        /// <param name="count"> The number of bytes that should be read from the stream into the buffer, if count = -1 the stream will be read to its end.</param>
+        /// <param name="concat"> Boolean value indicating whether or not the data read from the stream should be concatenated to the buffer or override the data already in the buffer.</param>
         public void ReadStream(Stream stream, int count = -1, bool concat = false)
         {
-            if (!concat) this.pointer = 0;
+            if (!concat) this.nextPointer = 0;
             if (count == -1) count = (int)stream.Length - (int)stream.Position;
-            stream.Read(this.buffer_data, (int)pointer, count);
+            stream.Read(this.bufferData, (int)nextPointer, count);
         }
 
         /// <summary>
-        /// Writes data from the binBuffer into the given stream.
+        /// Writes data from the buffer into the given stream.
         /// </summary>
         /// <param name="stream"> he stream to write to.</param>
-        /// <param name="begin"> The starting position in the binBuffer from which to begin writing.</param>
-        /// <param name="count"> The number of bytes that should be written to the stream, if count = -1 all the data in the binBuffer after 'begin' will be written.</param>
+        /// <param name="begin"> The starting position in the buffer from which to begin writing.</param>
+        /// <param name="count"> The number of bytes that should be written to the stream, if count = -1 all the data in the buffer after 'begin' will be written.</param>
         public void WriteStream(Stream stream, int begin = 0, int count = -1)
         {
-            if (count == -1) count = this.buffer_data.Length - begin;
-            stream.Write(this.buffer_data, begin, count);
+            if (count == -1) count = this.bufferData.Length - begin;
+            stream.Write(this.bufferData, begin, count);
         }
 
         /// <summary>
-        /// Get byte array describing the current state of the binBuffer.
-        /// Note: this operation is relatively costly since it creates a copy of the data in the binBuffer
+        /// Get byte array containing the serialized data contained in the buffer.
+        /// Note: the returned byte array acts as a pointer to the data that the buffer manages,
+        /// and as such it could be dangerous to modify the returned array.
+        /// (use CloneSerialized for a safer version)
+        /// </summary>
+        /// <returns> Byte array that the buffer uses to manage the serialized data. </returns>
+        public byte[] GetSerialized() { return bufferData; }
+
+        /// <summary>
+        /// Get MemoryStream backed by the buffers serialized data.
+        /// Note: the returned memory stream is not writable, it acts as a view of the
+        /// buffer's data.
+        /// </summary>
+        /// <returns> MemoryStream backed by the buffers serialized data. </returns>
+        public MemoryStream AsMemoryStream() { return new MemoryStream(this.bufferData, false); }
+         
+        /// <summary>
+        /// Get byte array describing the current state of the buffer.
+        /// Note: this operation is relatively costly since it creates a copy of the data in the buffer
         /// in order to return only the relevant data.
         /// </summary>
-        /// <returns> Byte array containing all the data written to the binBuffer as bytes.</returns>
-        public byte[] GetBytes()
+        /// <returns> Byte array containing all the data written to the buffer as bytes.</returns>
+        public byte[] CloneSerialized()
         {
-            byte[] res = new byte[this.pointer + 1];
-            Array.Copy(this.buffer_data, res, res.Length);
+            byte[] res = new byte[this.nextPointer + 1];
+            Array.Copy(this.bufferData, res, res.Length);
             return res;
         }
 
         /// <summary>
         /// Advances the read/write pointer one byte forward without preforming a read or a write.
         /// </summary>
-        /// <param name="binBuffer"></param>
+        /// <param name="buffer"></param>
         /// <returns></returns>
-        public static BinBuffer operator ++(BinBuffer binBuffer)
+        public static BinBuffer operator ++(BinBuffer buffer)
         {
-            binBuffer.pointer++;
-            return binBuffer;
+            buffer.nextPointer++;
+            return buffer;
         }
 
         /// <summary>
         /// Takes the read/write pointer one byte backwards without preforming a read or a write.
         /// </summary>
-        /// <param name="binBuffer"></param>
+        /// <param name="buffer"></param>
         /// <returns></returns>
-        public static BinBuffer operator --(BinBuffer binBuffer)
+        public static BinBuffer operator --(BinBuffer buffer)
         {
-            binBuffer.pointer--;
-            return binBuffer;
+            buffer.nextPointer--;
+            return buffer;
         }
 
         /// <summary>
         /// Advances the read/write pointer forward without preforming a read or a write.
         /// </summary>
-        /// <param name="binBuffer"></param>
+        /// <param name="buffer"></param>
         /// <param name="amount"> The amount of bytes to jump forward.</param>
         /// <returns></returns>
-        public static BinBuffer operator +(BinBuffer binBuffer, uint amount)
+        public static BinBuffer operator +(BinBuffer buffer, uint amount)
         {
-            if (binBuffer.buffer_data.Length < binBuffer.pointer + amount) throw new IndexOutOfRangeException("trying to jump outside of binBuffer bounds.");
-            binBuffer.pointer += amount;
-            return binBuffer;
+            if (buffer.bufferData.Length < buffer.nextPointer + amount) throw new IndexOutOfRangeException("trying to jump outside of buffer bounds.");
+            buffer.nextPointer += amount;
+            return buffer;
         }
 
         /// <summary>
         /// Takes the read/write pointer one byte backwards without preforming a read or a write.
         /// </summary>
-        /// <param name="binBuffer"></param>
+        /// <param name="buffer"></param>
         /// <param name="amount"> The amount of bytes to jump back.</param>
         /// <returns></returns>
-        public static BinBuffer operator -(BinBuffer binBuffer, uint amount)
+        public static BinBuffer operator -(BinBuffer buffer, uint amount)
         {
-            if ((int)binBuffer.pointer - (int)amount < 0) throw new IndexOutOfRangeException("trying to jump outside of binBuffer bounds.");
-            binBuffer.pointer -= amount;
-            return binBuffer;
+            if ((int)buffer.nextPointer - (int)amount < 0) throw new IndexOutOfRangeException("trying to jump outside of buffer bounds.");
+            buffer.nextPointer -= amount;
+            return buffer;
         }
 
-        #region Write
+         #region Write
 
 
         /// <summary>
-        /// Write the given objects into the binBuffer in the sequence they are passed to the function.
+        /// Write the given objects into the buffer in the sequence they are passed to the function from left to right.
         /// </summary>
         /// <param name="sData">The array of the data objects to be written.</param>
         public void Write(params object[] sData)
         {
-            if (this.mode != Mode.WRITE) throw new InvalidOperationException("cannot write to binBuffer when not in WRITE mode.");
+            if (this.mode != Mode.WRITE) throw new InvalidOperationException("cannot write to buffer when not in WRITE mode.");
             foreach (var t in sData)
-            {
                 WriteSingle(t);
-            }
+            
         }
 
         private void WriteSingle<T>(T sData)
@@ -232,7 +266,7 @@ namespace BinBuff
 
 
         /// <summary>
-        /// Writes the given objects into the binBuffer using the provided Serializer.
+        /// Writes the given objects into the buffer using the provided Serializer.
         /// </summary>
         /// <typeparam name="T"> The type of the objects that should be written.</typeparam>
         /// <param name="serializer"> The Serializer that will be used to write the objects.</param>
@@ -241,29 +275,45 @@ namespace BinBuff
         {
             if (sData == null) throw new ArgumentNullException(nameof(sData));
             if (serializer == null) throw new ArgumentNullException(nameof(serializer));
-            if (this.mode != Mode.WRITE) throw new InvalidOperationException("cannot write to binBuffer when not in WRITE mode.");
+            if (this.mode != Mode.WRITE) throw new InvalidOperationException("cannot write to buffer when not in WRITE mode.");
             foreach (T data in sData)
             {
                 serializer(data, this);
             }
         }
 
+        private void AllocBuffer(int size)
+        {
+            if (bufferData.Length - this.nextPointer < size)
+            {
+                if (this.type == Type.STATIC) throw new InvalidOperationException("reached the end of the allocated space of the STATIC buffer.");
+                Array.Resize(ref bufferData, this.bufferData.Length * 2);
+            }
+        }
+
         private unsafe void WritePrimitive(void* data, int size)
         {
             if (data == null) throw new NullReferenceException();
-            if (this.mode != Mode.WRITE) throw new InvalidOperationException("cannot write to binBuffer when not in WRITE mode.");
-            if (buffer_data.Length - this.pointer < size)
+            if (this.mode != Mode.WRITE) throw new InvalidOperationException("cannot write to buffer when not in WRITE mode.");
+            AllocBuffer(size);
+
+            if (BitConverter.IsLittleEndian)
             {
-                if (this.type == Type.STATIC) throw new InvalidOperationException("reached the end of the allocated space of the STATIC binBuffer.");
-                Array.Resize(ref buffer_data, this.buffer_data.Length * 2);
+                // reverse copy.
+                byte* sData = (byte*)data + size - 1;
+                while (size > 0)
+                {
+                    this.bufferData[this.nextPointer++] = *sData--;
+                    size--;
+                }
+
             }
-
-
-            byte* bData = (byte*)data;
-            for (int i = 0; i < size; i++)
+            else
             {
-                this.buffer_data[pointer++] = *bData;
-                bData++;
+                // normal copy.
+                byte* sData = (byte*)data;
+                for (int i = 0; i < size; i++)
+                    this.bufferData[this.nextPointer++] = *sData++;
             }
         }
 
@@ -278,9 +328,8 @@ namespace BinBuff
             if (sData == null) throw new ArgumentNullException(nameof(sData));
             IEnumerator itr = sData.GetEnumerator();
             while (itr.MoveNext())
-            {
                 this.WriteSingle(itr.Current);
-            }
+            
         }
 
 
@@ -298,17 +347,20 @@ namespace BinBuff
 
         private void WritePrimitive(bool data)
         {
-            this.buffer_data[pointer++] = data ? (byte)1 : (byte)0;
+            AllocBuffer(1);
+            this.bufferData[nextPointer++] = data ? (byte)1 : (byte)0;
         }
 
         private unsafe void WritePrimitive(sbyte data)
         {
-            this.buffer_data[pointer++] = *((byte*)&data);
+            AllocBuffer(1);
+            this.bufferData[nextPointer++] = *((byte*)&data);
         }
 
         private void WritePrimitive(byte data)
         {
-            this.buffer_data[pointer++] = data;
+            AllocBuffer(1);
+            this.bufferData[nextPointer++] = data;
         }
 
         private unsafe void WritePrimitive(char data)
@@ -359,14 +411,14 @@ namespace BinBuff
         #region Read
 
         /// <summary>
-        /// Read from the binBuffer into the given object 'dest'.
+        /// Read from the buffer into the given object 'dest'.
         /// note that this will delete any data already stored in the object.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="dest"></param>
         public void Read<T>(out T dest) where T : new()
         {
-            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from binBuffer when not in READ mode.");
+            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from buffer when not in READ mode.");
             dest = new T();
             ReadRef(ref dest);
         }
@@ -455,7 +507,7 @@ namespace BinBuff
         }
 
         /// <summary>
-        /// Reads into the given objects from the binBuffer using the provided Deserializer.
+        /// Reads into the given objects from the buffer using the provided Deserializer.
         /// </summary>
         /// <typeparam name="T"> The type of the objects that should be read.</typeparam>
         /// <param name="deserializer"> The Deserializer that will be used to read the objects.</param>
@@ -464,7 +516,7 @@ namespace BinBuff
         {
             if (dest == null) throw new ArgumentNullException(nameof(dest));
             if (deserializer == null) throw new ArgumentNullException(nameof(deserializer));
-            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from binBuffer when not in READ mode.");
+            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from buffer when not in READ mode.");
             foreach (T obj in dest)
             {
                 deserializer(obj, this);
@@ -474,13 +526,26 @@ namespace BinBuff
         private unsafe void ReadPrimitive(void* dest, int size)
         {
             if (dest == null) throw new NullReferenceException();
-            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from binBuffer when not in READ mode.");
-            if (this.buffer_data.Length - this.pointer < size) throw new OverflowException("reached the end of the binBuffer.");
+            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from buffer when not in READ mode.");
+            if (this.bufferData.Length - this.nextPointer < size) throw new OverflowException("reached the end of the buffer.");
 
-            byte* bdest = (byte*)dest;
-            for (int i = 0; i < size; i++)
+            if (BitConverter.IsLittleEndian)
             {
-                bdest[i] = this.buffer_data[pointer++];
+                // reverse copy.
+                byte* sData = (byte*)dest + size - 1;
+                while (size > 0)
+                {
+                    *sData-- = this.bufferData[this.nextPointer++];
+                    size--;
+                }
+            }
+            else
+            {
+                // normal copy.
+                byte* sData = (byte*)dest;
+                for (int i = 0; i < size; i++)
+                    sData[i] = this.bufferData[this.nextPointer++];
+
             }
         }
 
@@ -492,7 +557,7 @@ namespace BinBuff
         /// <param name="size"> The number of objects to be read into the collection.</param>
         public void Read<T>(ICollection<T> dest, int size) where T : new()
         {
-            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from binBuffer when not in READ mode.");
+            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from buffer when not in READ mode.");
             if (dest is IList list && list.IsFixedSize)
             {
                 ReadFixed((IList<T>)list, size);
@@ -523,7 +588,7 @@ namespace BinBuff
         /// <param name="size"> The number of objects to be read into the queue.</param>
         public void Read<T>(Queue<T> dest, int size) where T : new()
         {
-            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from binBuffer when not in READ mode.");
+            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from buffer when not in READ mode.");
             for (int i = 0; i < size; i++)
             {
                 Read(out T tmp);
@@ -539,7 +604,7 @@ namespace BinBuff
         /// <param name="size"> The number of objects to be read into the stack.</param>
         public void Read<T>(Stack<T> dest, int size) where T : new()
         {
-            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from binBuffer when not in READ mode.");
+            if (this.mode != Mode.READ) throw new InvalidOperationException("cannot read from buffer when not in READ mode.");
             Stack<T> tmpStack = new Stack<T>();
             for (int i = 0; i < size; i++)
             {
@@ -575,18 +640,21 @@ namespace BinBuff
 
         private void ReadPrimitive(out bool dest)
         {
-            dest = this.buffer_data[pointer++] == 1;
+            if (this.bufferData.Length - this.nextPointer < 1) throw new OverflowException("reached the end of the buffer.");
+            dest = this.bufferData[nextPointer++] == 1;
         }
 
         private unsafe void ReadPrimitive(out sbyte dest)
         {
-            byte b = this.buffer_data[pointer++];
+            if (this.bufferData.Length - this.nextPointer < 1) throw new OverflowException("reached the end of the buffer.");
+            byte b = this.bufferData[nextPointer++];
             dest = *((sbyte*)&b);
         }
 
         private void ReadPrimitive(out byte dest)
         {
-            dest = this.buffer_data[pointer++];
+            if (this.bufferData.Length - this.nextPointer < 1) throw new OverflowException("reached the end of the buffer.");
+            dest = this.bufferData[nextPointer++];
         }
 
         private unsafe void ReadPrimitive(out char dest)

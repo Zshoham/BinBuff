@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29424.173
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinBuff", "BinBuff\BinBuff.csproj", "{9A59B286-C4DB-4801-A3C8-499FF401A7CB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinBuffTest", "BinBuffTest\BinBuffTest.csproj", "{AD1E7232-A6EB-45C2-B6DF-1D6D64354C36}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinBuff.Test", "BinBuff.Test\BinBuff.Test.csproj", "{E8E15DF4-B63C-47D4-9711-72C8A78C9FE4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{9A59B286-C4DB-4801-A3C8-499FF401A7CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A59B286-C4DB-4801-A3C8-499FF401A7CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A59B286-C4DB-4801-A3C8-499FF401A7CB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AD1E7232-A6EB-45C2-B6DF-1D6D64354C36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AD1E7232-A6EB-45C2-B6DF-1D6D64354C36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AD1E7232-A6EB-45C2-B6DF-1D6D64354C36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AD1E7232-A6EB-45C2-B6DF-1D6D64354C36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8E15DF4-B63C-47D4-9711-72C8A78C9FE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8E15DF4-B63C-47D4-9711-72C8A78C9FE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8E15DF4-B63C-47D4-9711-72C8A78C9FE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8E15DF4-B63C-47D4-9711-72C8A78C9FE4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
