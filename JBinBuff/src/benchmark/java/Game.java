@@ -33,11 +33,8 @@ public class Game  implements ISerializable, Comparable<Game>, Serializable {
 
     @Override
     public void serialize(Buffer buffer) {
-        buffer.write(width);
-        buffer.write(height);
-        buffer.write(player);
-        buffer.write((short) enemies.length);
-        buffer.write(enemies);
+        buffer.write(width, height, player);
+        buffer.write((short) enemies.length, enemies);
     }
 
     @Override
@@ -53,7 +50,7 @@ public class Game  implements ISerializable, Comparable<Game>, Serializable {
     @Override
     public boolean equals(Object o) {
         if(!(o instanceof Game)) return false;
-        boolean res = true;
+        boolean res;
         Game other = (Game)o;
         res = this.width == other.width;
         res = res && this.height == other.height;

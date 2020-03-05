@@ -5,7 +5,11 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
-import java.util.*;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 
 /**
  * The buffer stores serialized data,
@@ -36,7 +40,7 @@ public class Buffer {
     public enum MODE { READ, WRITE }
 
     private byte[] data;
-    private int pointer;
+    private int nextPointer;
 
     private TYPE type;
     private MODE mode;
@@ -49,12 +53,12 @@ public class Buffer {
      * @throws IllegalStateException if additional allocation is attempted on a STATIC buffer.
      */
     private void alloc_buffer(int size) throws IllegalStateException {
-        if (this.data.length - this.pointer < size) {
+        if (this.data.length - this.nextPointer < size) {
             if (this.type == TYPE.STATIC)
                 throw new IllegalStateException("cannot change size of STATIC buffer.");
             byte[] arr = null;
             int length;
-            if (size > this.data.length * 2) length = this.pointer + size;
+            if (size > this.data.length * 2) length = this.nextPointer + size;
             else length = this.data.length * 2;
             this.data = Arrays.copyOf(this.data, length);
         }
@@ -65,11 +69,11 @@ public class Buffer {
      * @param other the Buffer to copy.
      */
     public Buffer(Buffer other) {
-        this.pointer = other.pointer;
+        this.nextPointer = other.nextPointer;
         this.type = other.type;
         this.mode = other.mode;
         this.data = new byte[other.data.length];
-        System.arraycopy(other.data, 0, this.data, 0, this.pointer);
+        System.arraycopy(other.data, 0, this.data, 0, this.nextPointer);
     }
 
     /**
@@ -105,7 +109,7 @@ public class Buffer {
         this.data = new byte[actualCount];
         this.type = TYPE.STATIC;
         this.mode = MODE.READ;
-        this.pointer = 0;
+        this.nextPointer = 0;
         if (stream.read(this.data) != data.length) throw new IOException("problem reading from stream, bytes read and available do not match");
     }
 
@@ -119,7 +123,7 @@ public class Buffer {
         this.data = new byte[stream.available()];
         this.type = TYPE.STATIC;
         this.mode = MODE.READ;
-        this.pointer = 0;
+        this.nextPointer = 0;
         if (stream.read(this.data) != data.length) throw new IOException("problem reading from stream, bytes read and available do not match");
     }
 
@@ -132,7 +136,7 @@ public class Buffer {
      */
     public Buffer(byte[] data, int count) {
         this.data = Arrays.copyOf(data, count);
-        this.pointer = 0;
+        this.nextPointer = 0;
         this.type = TYPE.STATIC;
         this.mode = MODE.READ;
     }
@@ -154,11 +158,11 @@ public class Buffer {
      */
     public void setRead() {
         if (this.mode == MODE.READ) return;
-        if (pointer + 1 !=  this.data.length)
-            this.data = Arrays.copyOf(this.data, this.pointer);
+        if (nextPointer + 1 !=  this.data.length)
+            this.data = Arrays.copyOf(this.data, this.nextPointer);
         this.mode = MODE.READ;
         this.type = TYPE.STATIC;
-        this.pointer = 0;
+        this.nextPointer = 0;
     }
 
     /**
@@ -170,8 +174,8 @@ public class Buffer {
         if (this.mode == MODE.WRITE) return;
         this.mode = MODE.WRITE;
         this.type = type;
-        this.pointer = this.data.length;
-        this.data = Arrays.copyOf(this.data, this.pointer + extraSize);
+        this.nextPointer = this.data.length;
+        this.data = Arrays.copyOf(this.data, this.nextPointer + extraSize);
     }
 
     /**
@@ -193,14 +197,35 @@ public class Buffer {
     }
 
     /**
+     * Get byte array containing the serialized data contained in the buffer.
+     * note: the returned byte array acts as a pointer to the data that the buffer manages,
+     * and as such it could be dangerous to modify the returned array.
+     * (use cloneSerialized for a safer version)
+     * @return byte array that the buffer uses to manage the serialized data.
+     */
+    public byte[] getSerialized() {
+        return this.data;
+    }
+
+    /**
+     * Get ByteBuffer backed by the buffers serialized data.
+     * Note: the returned byte buffer is a read only buffer, it acts as a view of the
+     * buffer's data.
+     * @return ByteBuffer backed by the buffers serialized data.
+     */
+    public ByteBuffer asByteBuffer() {
+        return ByteBuffer.wrap(this.data).asReadOnlyBuffer();
+    }
+
+    /**
      * Creates a byte array containing all the buffers data and exactly
      * all the buffers data, meaning the last byte of the array will be the last byte that was written
      * to the buffer.
      * note: this is a copy operation, meaning all the buffers data will be copied to a new location.
      * @return byte array containing all the data currently in the buffer.
      */
-    public byte[] getBytes() {
-        return Arrays.copyOf(this.data, this.pointer + 1);
+    public byte[] cloneSerialized() {
+        return Arrays.copyOf(this.data, this.nextPointer);
     }
 
     /**
@@ -214,11 +239,11 @@ public class Buffer {
      * @throws BufferUnderflowException if the pointer is moved to a position smaller than 0.
      */
     public void seekByte(int amount) throws BufferOverflowException, BufferUnderflowException {
-        if (this.data.length < this.pointer + amount)
+        if (this.data.length < this.nextPointer + amount)
             throw new BufferOverflowException();
-        if (this.pointer + amount < 0)
+        if (this.nextPointer + amount < 0)
             throw new BufferUnderflowException();
-        this.pointer += amount;
+        this.nextPointer += amount;
     }
 
     /**
@@ -240,7 +265,7 @@ public class Buffer {
      * Writing after a rewind will overwrite the data in the buffer,
      * this makes the rewind equivalent to clear operation.
      */
-    public void rewind() { this.pointer = 0; }
+    public void rewind() { this.nextPointer = 0; }
 
     //region Write
 
@@ -407,74 +432,74 @@ public class Buffer {
     public void write(byte data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(1);
-        this.data[pointer++] = data;
+        this.data[nextPointer++] = data;
     }
 
     public void write(boolean data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         alloc_buffer(1);
-        if (data) this.data[pointer++] = 1;
-        else this.data[pointer++] = 0;
+        if (data) this.data[nextPointer++] = 1;
+        else this.data[nextPointer++] = 0;
     }
 
     public void write(short data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(2);
-        this.data[pointer++] = (byte) (data >> 8);
-        this.data[pointer++] = (byte) (data & 0xff);
+        this.data[nextPointer++] = (byte) (data >> 8);
+        this.data[nextPointer++] = (byte) (data & 0xff);
     }
 
     public void write(char data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(2);
-        this.data[pointer++] = (byte) (data >> 8);
-        this.data[pointer++] = (byte) (data & 0xff);
+        this.data[nextPointer++] = (byte) (data >> 8);
+        this.data[nextPointer++] = (byte) (data & 0xff);
     }
 
     public void write(int data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(4);
-        this.data[pointer++] = (byte) (data >> 24);
-        this.data[pointer++] = (byte) (data >> 16);
-        this.data[pointer++] = (byte) (data >> 8);
-        this.data[pointer++] = (byte) (data & 0xff);
+        this.data[nextPointer++] = (byte) (data >> 24);
+        this.data[nextPointer++] = (byte) (data >> 16);
+        this.data[nextPointer++] = (byte) (data >> 8);
+        this.data[nextPointer++] = (byte) (data & 0xff);
     }
 
     public void write(long data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(8);
-        this.data[pointer++] = (byte) (data >> 56);
-        this.data[pointer++] = (byte) (data >> 48);
-        this.data[pointer++] = (byte) (data >> 40);
-        this.data[pointer++] = (byte) (data >> 32);
-        this.data[pointer++] = (byte) (data >> 24);
-        this.data[pointer++] = (byte) (data >> 16);
-        this.data[pointer++] = (byte) (data >> 8);
-        this.data[pointer++] = (byte) (data & 0xff);
+        this.data[nextPointer++] = (byte) (data >> 56);
+        this.data[nextPointer++] = (byte) (data >> 48);
+        this.data[nextPointer++] = (byte) (data >> 40);
+        this.data[nextPointer++] = (byte) (data >> 32);
+        this.data[nextPointer++] = (byte) (data >> 24);
+        this.data[nextPointer++] = (byte) (data >> 16);
+        this.data[nextPointer++] = (byte) (data >> 8);
+        this.data[nextPointer++] = (byte) (data & 0xff);
     }
 
     public void write(float data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(4);
         int intVal = Float.floatToIntBits(data);
-        this.data[pointer++] = (byte) (intVal >> 24);
-        this.data[pointer++] = (byte) (intVal >> 16);
-        this.data[pointer++] = (byte) (intVal >> 8);
-        this.data[pointer++] = (byte) (intVal & 0xff);
+        this.data[nextPointer++] = (byte) (intVal >> 24);
+        this.data[nextPointer++] = (byte) (intVal >> 16);
+        this.data[nextPointer++] = (byte) (intVal >> 8);
+        this.data[nextPointer++] = (byte) (intVal & 0xff);
     }
 
     public void write(double data) throws IllegalStateException {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(8);
         long longVal = Double.doubleToLongBits(data);
-        this.data[pointer++] = (byte) (longVal >> 56);
-        this.data[pointer++] = (byte) (longVal >> 48);
-        this.data[pointer++] = (byte) (longVal >> 40);
-        this.data[pointer++] = (byte) (longVal >> 32);
-        this.data[pointer++] = (byte) (longVal >> 24);
-        this.data[pointer++] = (byte) (longVal >> 16);
-        this.data[pointer++] = (byte) (longVal >> 8);
-        this.data[pointer++] = (byte) (longVal & 0xff);
+        this.data[nextPointer++] = (byte) (longVal >> 56);
+        this.data[nextPointer++] = (byte) (longVal >> 48);
+        this.data[nextPointer++] = (byte) (longVal >> 40);
+        this.data[nextPointer++] = (byte) (longVal >> 32);
+        this.data[nextPointer++] = (byte) (longVal >> 24);
+        this.data[nextPointer++] = (byte) (longVal >> 16);
+        this.data[nextPointer++] = (byte) (longVal >> 8);
+        this.data[nextPointer++] = (byte) (longVal & 0xff);
     }
 
 
@@ -484,7 +509,7 @@ public class Buffer {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         alloc_buffer(data.length);
         for (byte b : data) {
-            this.data[pointer++] = b;
+            this.data[nextPointer++] = b;
         }
     }
 
@@ -492,8 +517,8 @@ public class Buffer {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         alloc_buffer(data.length);
         for(boolean b: data) {
-            if (b) this.data[pointer++] = 1;
-            else this.data[pointer++] = 0;
+            if (b) this.data[nextPointer++] = 1;
+            else this.data[nextPointer++] = 0;
         }
     }
 
@@ -501,8 +526,8 @@ public class Buffer {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(2 * data.length);
         for (short s : data) {
-            this.data[pointer++] = (byte) (s >> 8);
-            this.data[pointer++] = (byte) (s & 0xff);
+            this.data[nextPointer++] = (byte) (s >> 8);
+            this.data[nextPointer++] = (byte) (s & 0xff);
         }
     }
 
@@ -510,8 +535,8 @@ public class Buffer {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(2 * data.length);
         for (char c : data) {
-            this.data[pointer++] = (byte) (c >> 8);
-            this.data[pointer++] = (byte) (c & 0xff);
+            this.data[nextPointer++] = (byte) (c >> 8);
+            this.data[nextPointer++] = (byte) (c & 0xff);
         }
     }
 
@@ -519,10 +544,10 @@ public class Buffer {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(4 * data.length);
         for (int i : data) {
-            this.data[pointer++] = (byte) (i >> 24);
-            this.data[pointer++] = (byte) (i >> 16);
-            this.data[pointer++] = (byte) (i >> 8);
-            this.data[pointer++] = (byte) (i & 0xff);
+            this.data[nextPointer++] = (byte) (i >> 24);
+            this.data[nextPointer++] = (byte) (i >> 16);
+            this.data[nextPointer++] = (byte) (i >> 8);
+            this.data[nextPointer++] = (byte) (i & 0xff);
         }
     }
 
@@ -530,14 +555,14 @@ public class Buffer {
         if (this.mode == MODE.READ) throw new IllegalStateException("Cannot write to buffer while in READ mode.");
         this.alloc_buffer(8 * data.length);
         for (long l : data) {
-            this.data[pointer++] = (byte) (l >> 56);
-            this.data[pointer++] = (byte) (l >> 48);
-            this.data[pointer++] = (byte) (l >> 40);
-            this.data[pointer++] = (byte) (l >> 32);
-            this.data[pointer++] = (byte) (l >> 24);
-            this.data[pointer++] = (byte) (l >> 16);
-            this.data[pointer++] = (byte) (l >> 8);
-            this.data[pointer++] = (byte) (l & 0xff);
+            this.data[nextPointer++] = (byte) (l >> 56);
+            this.data[nextPointer++] = (byte) (l >> 48);
+            this.data[nextPointer++] = (byte) (l >> 40);
+            this.data[nextPointer++] = (byte) (l >> 32);
+            this.data[nextPointer++] = (byte) (l >> 24);
+            this.data[nextPointer++] = (byte) (l >> 16);
+            this.data[nextPointer++] = (byte) (l >> 8);
+            this.data[nextPointer++] = (byte) (l & 0xff);
         }
     }
 
@@ -546,10 +571,10 @@ public class Buffer {
         this.alloc_buffer(4 * data.length);
         for (float f : data) {
             int intVal = Float.floatToIntBits(f);
-            this.data[pointer++] = (byte) (intVal >> 24);
-            this.data[pointer++] = (byte) (intVal >> 16);
-            this.data[pointer++] = (byte) (intVal >> 8);
-            this.data[pointer++] = (byte) (intVal & 0xff);
+            this.data[nextPointer++] = (byte) (intVal >> 24);
+            this.data[nextPointer++] = (byte) (intVal >> 16);
+            this.data[nextPointer++] = (byte) (intVal >> 8);
+            this.data[nextPointer++] = (byte) (intVal & 0xff);
         }
     }
 
@@ -558,14 +583,14 @@ public class Buffer {
         this.alloc_buffer(8 * data.length);
         for (double d : data) {
             long longVal = Double.doubleToLongBits(d);
-            this.data[pointer++] = (byte) (longVal >> 56);
-            this.data[pointer++] = (byte) (longVal >> 48);
-            this.data[pointer++] = (byte) (longVal >> 40);
-            this.data[pointer++] = (byte) (longVal >> 32);
-            this.data[pointer++] = (byte) (longVal >> 24);
-            this.data[pointer++] = (byte) (longVal >> 16);
-            this.data[pointer++] = (byte) (longVal >> 8);
-            this.data[pointer++] = (byte) (longVal & 0xff);
+            this.data[nextPointer++] = (byte) (longVal >> 56);
+            this.data[nextPointer++] = (byte) (longVal >> 48);
+            this.data[nextPointer++] = (byte) (longVal >> 40);
+            this.data[nextPointer++] = (byte) (longVal >> 32);
+            this.data[nextPointer++] = (byte) (longVal >> 24);
+            this.data[nextPointer++] = (byte) (longVal >> 16);
+            this.data[nextPointer++] = (byte) (longVal >> 8);
+            this.data[nextPointer++] = (byte) (longVal & 0xff);
         }
     }
 
@@ -869,50 +894,50 @@ public class Buffer {
 
     public byte readByte() throws IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        return this.data[pointer++];
+        return this.data[nextPointer++];
     }
 
     public boolean readBoolean() throws IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        return this.data[pointer++] == 1;
+        return this.data[nextPointer++] == 1;
     }
 
     public short readShort() throws IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        byte b1 = data[pointer++];
-        byte b0 = data[pointer++];
+        byte b1 = data[nextPointer++];
+        byte b0 = data[nextPointer++];
 
         return (short) (((b1 & 0xff) << 8) | (b0 & 0xff));
     }
 
     public char readChar() throws IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        byte b1 = data[pointer++];
-        byte b0 = data[pointer++];
+        byte b1 = data[nextPointer++];
+        byte b0 = data[nextPointer++];
 
         return (char) (((b1 & 0xff) << 8) | (b0 & 0xff));
     }
 
     public int readInt() throws IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        byte b3 = data[pointer++];
-        byte b2 = data[pointer++];
-        byte b1 = data[pointer++];
-        byte b0 = data[pointer++];
+        byte b3 = data[nextPointer++];
+        byte b2 = data[nextPointer++];
+        byte b1 = data[nextPointer++];
+        byte b0 = data[nextPointer++];
 
         return (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
     }
 
     public long readLong() throws IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        byte b7 = data[pointer++];
-        byte b6 = data[pointer++];
-        byte b5 = data[pointer++];
-        byte b4 = data[pointer++];
-        byte b3 = data[pointer++];
-        byte b2 = data[pointer++];
-        byte b1 = data[pointer++];
-        byte b0 = data[pointer++];
+        byte b7 = data[nextPointer++];
+        byte b6 = data[nextPointer++];
+        byte b5 = data[nextPointer++];
+        byte b4 = data[nextPointer++];
+        byte b3 = data[nextPointer++];
+        byte b2 = data[nextPointer++];
+        byte b1 = data[nextPointer++];
+        byte b0 = data[nextPointer++];
 
         return  (((b7 & 0xffL) << 56) | ((b6 & 0xffL) << 48) | ((b5 & 0xffL) << 40) | ((b4 & 0xffL) << 32)
                 | ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
@@ -930,67 +955,67 @@ public class Buffer {
 
     public void read(byte[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
-            dest[i] = this.data[pointer++];
+            dest[i] = this.data[nextPointer++];
         }
     }
 
     public void read(boolean[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if(this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if(this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         for (int i = 0; i < dest.length; i++) {
-            dest[i] = this.data[pointer++] == 1;
+            dest[i] = this.data[nextPointer++] == 1;
         }
     }
 
     public void read(short[] dest) throws BufferOverflowException, IllegalStateException {
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         byte b1, b0;
         for (int i = 0; i < dest.length; i++) {
-            b1 = data[pointer++];
-            b0 = data[pointer++];
+            b1 = data[nextPointer++];
+            b0 = data[nextPointer++];
             dest[i] = (short) (((b1 & 0xff) << 8) | (b0 & 0xff));
         }
     }
 
     public void read(char[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         byte b1, b0;
         for (int i = 0; i < dest.length; i++) {
-            b1 = data[pointer++];
-            b0 = data[pointer++];
+            b1 = data[nextPointer++];
+            b0 = data[nextPointer++];
             dest[i] = (char) (((b1 & 0xff) << 8) | (b0 & 0xff));
         }
     }
 
     public void read(int[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         byte b3, b2, b1, b0;
         for (int i = 0; i < dest.length; i++) {
-            b3 = data[pointer++];
-            b2 = data[pointer++];
-            b1 = data[pointer++];
-            b0 = data[pointer++];
+            b3 = data[nextPointer++];
+            b2 = data[nextPointer++];
+            b1 = data[nextPointer++];
+            b0 = data[nextPointer++];
             dest[i] = (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
         }
     }
 
     public void read(long[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         byte b7, b6, b5, b4, b3, b2, b1, b0;
         for (int i = 0; i < dest.length; i++) {
-            b7 = data[pointer++];
-            b6 = data[pointer++];
-            b5 = data[pointer++];
-            b4 = data[pointer++];
-            b3 = data[pointer++];
-            b2 = data[pointer++];
-            b1 = data[pointer++];
-            b0 = data[pointer++];
+            b7 = data[nextPointer++];
+            b6 = data[nextPointer++];
+            b5 = data[nextPointer++];
+            b4 = data[nextPointer++];
+            b3 = data[nextPointer++];
+            b2 = data[nextPointer++];
+            b1 = data[nextPointer++];
+            b0 = data[nextPointer++];
             dest[i] = (((b7 & 0xffL) << 56) | ((b6 & 0xffL) << 48) | ((b5 & 0xffL) << 40) | ((b4 & 0xffL) << 32)
                     | ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
         }
@@ -998,13 +1023,13 @@ public class Buffer {
 
     public void read(float[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         byte b3, b2, b1, b0;
         for (int i = 0; i < dest.length; i++) {
-            b3 = data[pointer++];
-            b2 = data[pointer++];
-            b1 = data[pointer++];
-            b0 = data[pointer++];
+            b3 = data[nextPointer++];
+            b2 = data[nextPointer++];
+            b1 = data[nextPointer++];
+            b0 = data[nextPointer++];
             int intVal = (((b3 & 0xff) << 24) | ((b2 & 0xff) << 16) |((b1 & 0xff) << 8) | (b0 & 0xff));
             dest[i] = Float.intBitsToFloat(intVal);
         }
@@ -1012,17 +1037,17 @@ public class Buffer {
 
     public void read(double[] dest) throws BufferOverflowException, IllegalStateException {
         if (this.mode == MODE.WRITE) throw new IllegalStateException("Cannot read from buffer while in WRITE mode.");
-        if (this.data.length < this.pointer + dest.length) throw new BufferOverflowException();
+        if (this.data.length < this.nextPointer + dest.length) throw new BufferOverflowException();
         byte b7, b6, b5, b4, b3, b2, b1, b0;
         for (int i = 0; i < dest.length; i++) {
-            b7 = data[pointer++];
-            b6 = data[pointer++];
-            b5 = data[pointer++];
-            b4 = data[pointer++];
-            b3 = data[pointer++];
-            b2 = data[pointer++];
-            b1 = data[pointer++];
-            b0 = data[pointer++];
+            b7 = data[nextPointer++];
+            b6 = data[nextPointer++];
+            b5 = data[nextPointer++];
+            b4 = data[nextPointer++];
+            b3 = data[nextPointer++];
+            b2 = data[nextPointer++];
+            b1 = data[nextPointer++];
+            b0 = data[nextPointer++];
             long longVal = (((b7 & 0xffL) << 56) | ((b6 & 0xffL) << 48) | ((b5 & 0xffL) << 40) | ((b4 & 0xffL) << 32)
                     | ((b3 & 0xffL) << 24) | ((b2 & 0xffL) << 16) | ((b1 & 0xffL) << 8) | (b0 & 0xffL));
             dest[i] = Double.longBitsToDouble(longVal);

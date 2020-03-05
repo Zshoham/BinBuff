@@ -16,7 +16,6 @@ public class SerializationTest {
         int i = -568;
         long l = 77;
 
-        boolean res = true;
         Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
         Buffer sbuf = new Buffer(Buffer.TYPE.STATIC, 64);
 
@@ -104,7 +103,6 @@ public class SerializationTest {
         Player player = new Player(1);
         Game game = new Game(1200, 720, 2);
 
-        boolean res = true;
         Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
         Buffer sbuf = new Buffer(Buffer.TYPE.STATIC, 1024);
 
@@ -121,7 +119,7 @@ public class SerializationTest {
         sbuf.read(snp, sng);
 
         assert  player.equals(dnp) && player.equals(snp);
-        assert  res && game.equals(dng) && game.equals(sng);
+        assert  game.equals(dng) && game.equals(sng);
 
     }
 
@@ -166,7 +164,6 @@ public class SerializationTest {
         tset.add(p1);
         tset.add(p2);
 
-        boolean res = true;
         Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
 
         dbuf.write(arrlist, llist, vector, stack, pqueue, adeque, hset, lhset, tset);
@@ -215,7 +212,6 @@ public class SerializationTest {
         tmap.put(p1, g1);
         tmap.put(p2, g2);
 
-        boolean res = true;
         Buffer dbuf = new Buffer(Buffer.TYPE.DYNAMIC);
 
         dbuf.write(hmap, lhmap, tmap);
@@ -229,5 +225,59 @@ public class SerializationTest {
         assert hmap.equals(nhmap);
         assert lhmap.equals(nlhmap);
         assert tmap.equals(ntmap);
+
+        Buffer buff = new Buffer(Buffer.TYPE.DYNAMIC); // this create a buffer with initial size of 32.
+
+        buff = new Buffer(Buffer.TYPE.STATIC, 128); // this creates a buffer with intial size of 128.
+
+        buff.write((byte)5); // you can use the write method
+        buff.write((byte)25, (byte)'a'); // or the shift left operator
+
+        // for raw arrays the size must be specified thus << operator cannot be used.
+        boolean[] bools = { true, true, false, true };
+        buff.write(bools);
+
+        // this array now contains all the data written to the buffer,
+        // and will look something like - [5, 25, 97, 1, 1, 0, 1]
+        byte[] ser = buff.cloneSerialized();
+
+        buff.setRead();
+
+        // here we read the first three numbers we wrote into an array.
+        byte[] first = new byte[3];
+        buff.read(first);
+
+        // next we skip 2 bytes forward bringing us to the 2 index in the boolean array.
+        buff.seekByte(2);
+        boolean b = buff.readBoolean(); // meaning b is now false.
+
+        Player[] players = { new Player(1), new Player(2) };
+        Game[] games = { new Game(1280, 720, 1), new Game(1280, 720, 2) };
+
+
+
+        buff = new Buffer(Buffer.TYPE.DYNAMIC);
+
+        buff.write(players[0]); // we can write the individual games/players.
+        buff.write(players[1]);
+
+        buff.write(players); // we can write objects as an array
+
+        // and we can do both in one line.
+        buff.write(games[0], games[1], games);
+
+        buff.setRead();
+
+        Player fPlayer = new Player();
+        Player sPlayer = new Player();
+        Game nGame = new Game();
+
+        Player[] playerArr = new Player[2];
+        List<Game> gameList = new ArrayList<>();
+
+        buff.read(fPlayer, sPlayer);
+        buff.read(playerArr);
+        // note you must provide the class of the generic type in order to read into a collection.
+        buff.read(gameList, Game.class, 4);
     }
 }

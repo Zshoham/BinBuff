@@ -32,19 +32,26 @@ public class Benchmark {
             "\trmm - is read map in memory\n" +
             "\trmd - is read map in disk\n" +
             "\tin order to activate on of the benchmarks set the appropriate value to 1, " +
-            "for example to activate all the benchmarks use 11111111";
+            "for example to activate all the benchmarks use [1, 1, 1, 1, 1, 1, 1, 1]\n" +
+            "\tdefault value for log is 2 and for benchmark it is 1000000 (only wm)";
 
     public static void main(String[] args) {
-        String benchmark = "";
-        int option = -1;
+        try {
+            run_benchmark(args);
+        } catch (Exception e) {
+            System.out.println(USAGE);
+        }
+    }
+
+    private static void run_benchmark(String[] args) {
+        String benchmark = "10000000";
+        int option = 2;
         if (args.length > 3){
             System.out.println(USAGE);
             System.exit(0);
         }
-        else if (args.length == 1) {
-            benchmark = "11111111";
+        else if (args.length == 1)
             option = Integer.parseInt(args[0]);
-        }
         else if (args.length == 2) {
             option = Integer.parseInt(args[0]);
             benchmark = args[1];
@@ -60,6 +67,8 @@ public class Benchmark {
             System.out.println("[ERROR]: invalid benchmarks " + benchmark + "\n" + USAGE);
             System.exit(0);
         }
+
+        System.out.println(ANSI_RED + "note that all time is measured in milliseconds" + ANSI_RESET);
 
         //comment out the benchmarks that you do not want to run.
         if (benchmark.charAt(0) == '1') benchmarkWrite("write in memory", Benchmark::benchmarkWriteInMemory);
@@ -408,7 +417,7 @@ public class Benchmark {
                 //write buffer
                 timer.start();
                 buf.write(data);
-                bufFOS.write(buf.getBytes());
+                bufFOS.write(buf.cloneSerialized());
                 bufFOS.flush();
                 bufFOS.close();
                 res = timer.stop();
@@ -449,10 +458,10 @@ public class Benchmark {
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
         if (BENCHMARK_OPTION <= 0)
-            System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+            System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                     "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                     ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
-                    "BinBuff.com.BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                    "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
                     "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
                     ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
                     ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
@@ -486,7 +495,7 @@ public class Benchmark {
                 //write buffer
                 timer.start();
                 buf.write(data);
-                bufBytes = buf.getBytes();
+                bufBytes = buf.cloneSerialized();
                 res = timer.stop();
 
                 //buffer statistics
@@ -517,10 +526,10 @@ public class Benchmark {
         double runTimeImprove = ((avgTimeOOS / avgTimeBUF) * 100) - 100;
         double sizeImprove = (((double)avgSizeOOS / (double)avgSizeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOOS + ", max = " + maxTimeOOS + ", average = " + avgTimeOOS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%" + "\n" + ANSI_RESET +
-                "BinBuff.com.BinBuff.Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
+                "Buffer file size = " + avgSizeBUF + "B, " + (avgSizeBUF / 1024) + "Kb, " + (avgSizeBUF / (1024 * 1024)) + "Mb" + "\n" +
                 "ObjectOutputStream file size = " + avgSizeOOS + "B, " + (avgSizeOOS / 1024) + "Kb, " + (avgSizeOOS / (1024 * 1024)) + "Mb" + "\n" +
                 ANSI_BLUE + "average file size improvement - " + sizeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOOS - avgTimeBUF) + ANSI_RESET);
@@ -584,7 +593,7 @@ public class Benchmark {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -650,7 +659,7 @@ public class Benchmark {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -717,7 +726,7 @@ public class Benchmark {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -749,7 +758,7 @@ public class Benchmark {
 
             buf = new Buffer(Buffer.TYPE.DYNAMIC);
             buf.write(data);
-            bufFOS.write(buf.getBytes());
+            bufFOS.write(buf.cloneSerialized());
             bufFOS.flush();
             bufFOS.close();
             buf.setRead();
@@ -811,7 +820,7 @@ public class Benchmark {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -844,7 +853,7 @@ public class Benchmark {
 
             buf = new Buffer(Buffer.TYPE.DYNAMIC);
             buf.write(data);
-            bufFOS.write(buf.getBytes());
+            bufFOS.write(buf.cloneSerialized());
             bufFOS.flush();
             bufFOS.close();
             buf.setRead();
@@ -904,7 +913,7 @@ public class Benchmark {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
@@ -936,7 +945,7 @@ public class Benchmark {
 
             buf = new Buffer(Buffer.TYPE.DYNAMIC);
             buf.write(data);
-            bufFOS.write(buf.getBytes());
+            bufFOS.write(buf.cloneSerialized());
             bufFOS.flush();
             bufFOS.close();
             buf.setRead();
@@ -999,7 +1008,7 @@ public class Benchmark {
 
         double runTimeImprove = ((avgTimeOIS / avgTimeBUF) * 100) - 100;
 
-        if (BENCHMARK_OPTION <= 0) System.out.println("BinBuff.com.BinBuff.Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
+        if (BENCHMARK_OPTION <= 0) System.out.println("Buffer runtime - min =" + minTimeBUF + ", max = " + maxTimeBUF + ", average = " + avgTimeBUF + "\n" +
                 "ObjectOutputStream runtime - min =" + minTimeOIS + ", max = " + maxTimeOIS + ", average = " + avgTimeOIS + "\n" +
                 ANSI_BLUE + "average runtime improvement - " + runTimeImprove + "%\n" + ANSI_RESET +
                 ANSI_BLUE + "average time saved - " + (avgTimeOIS - avgTimeBUF) + ANSI_RESET);
