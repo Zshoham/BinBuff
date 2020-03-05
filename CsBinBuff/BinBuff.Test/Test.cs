@@ -316,62 +316,6 @@ namespace BinBuff.Test
 
             Assert.True(nhs.Contains(p1) && nhs.Contains(p2));
             Assert.True(nss.Contains(p1) && nss.Contains(p2));
-
-
-            BinBuffer buff = new BinBuffer(BinBuffer.Type.DYNAMIC); // this create a buffer with initial size of 32.
-
-            buff = new BinBuffer(BinBuffer.Type.STATIC, 128); // this creates a buffer with intial size of 128.
-
-            buff.Write((byte)5); // you can use the write method
-            buff.Write((byte)25, (byte)'a'); // or the shift left operator
-
-            // for raw arrays the size must be specified thus << operator cannot be used.
-            bool[] bools = { true, true, false, true };
-            buff.Write(bools);
-
-            // this array now contains all the data written to the buffer, 
-            // and will look something like - [5, 25, 97, 1, 1, 0, 1]
-            byte[] ser = buff.CloneSerialized();
-
-            buff.SetRead();
-
-            // here we read the first three numbers we wrote into an array.
-            byte[] first = new byte[3];
-            buff.Read(first, 3);
-
-            // next we skip 2 bytes forward bringing us to the 2 index in the boolean array.
-            buff += 2;
-            bool b;
-            buff.Read(out b); // meaning b is now false.
-
-
-
-            Player[] players = { new Player(1), new Player(2) };
-            Game[] games = { new Game(1280, 720, 1), new Game(1280, 720, 2) };
-
-            buff = new BinBuffer(BinBuffer.Type.DYNAMIC);
-
-            buff.Write(players[0]); // we can write the individual games/players.
-            buff.Write(players[1]);
-
-            buff.Write(players); // we can write objects as an array
-
-            // and we can do both in one line.
-            buff.Write(games[0], games[1], games);
-
-            buff.SetRead();
-
-            Player fPlayer;
-            Player sPlayer;
-            Game nGame;
-
-            Player[] playerArr = new Player[2];
-            List<Game> gameList = new List<Game>();
-
-            buff.Read(out fPlayer);
-            buff.Read(out sPlayer);
-            buff.Read(playerArr, 2);
-            buff.Read(gameList, 4);
         }
     }
 }
