@@ -76,7 +76,7 @@ buff >> b; // meaning b is now false.
 All data structures implemented in the c++ standard library are supported, the library tries to provide an interface for serializing data as generically as possible, for example, to serialize a container all you need is to provide iterators to the first element and the last (very similar to many std algorithms).
 
 That being said it is also possible to create serializable types by deriving the Serializable class or otherwise implementing a serializer for existing classes.
-The tests can provide examples of both behaviors, let's see how it works.
+The tests can provide examples of both behaviors, let's see how it works. (for more details take a look at the tests)
 
 ```C++
 

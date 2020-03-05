@@ -58,10 +58,10 @@ def cmake_build(config):
     os.chdir('build')
     if platform.system() == "Windows":
         subprocess.run(['cmake', '--build', '.', '--target', 'ALL_BUILD', '--config', config])
-        subprocess.run(['cmake', f'-DCOMPONENT={cmake_component}', '-DBUILD_TYPE='+config, '-P', 'cmake_install.cmake'])
+        subprocess.run(['cmake', f'-DCOMPONENT={cmake_component}', '-DBUILD_TYPE=' + config, '-P', 'cmake_install.cmake'])
     else:
         subprocess.run(['cmake', '--build', '.'])
-        subprocess.run(['cmake', f'-DCOMPONENT={cmake_component}', '-DBUILD_TYPE='+config, '-P', 'cmake_install.cmake'])
+        subprocess.run(['cmake', f'-DCOMPONENT={cmake_component}', '-DBUILD_TYPE=' + config, '-P', 'cmake_install.cmake'])
     os.chdir(project_dir)
     show(f"{config} build is complete", "SUCCESS")
 

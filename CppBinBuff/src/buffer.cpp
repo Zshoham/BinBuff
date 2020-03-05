@@ -3,13 +3,13 @@
 namespace binbuff
 {
 
-void Buffer::alloc_buffer(const std::size_t &size)
+void Buffer::alloc_buffer(const std::size_t size)
 {
 	if (this->buffer_size - this->next_pointer < size)
 	{
 		if (this->buffer_type == STATIC)
 			throw std::length_error("reached the end of the allocated buffer_size of a static buffer.");
-
+		
 		void *tmp = nullptr;
 		if (size > this->buffer_size * 2 - this->next_pointer)
 		{
@@ -28,14 +28,14 @@ void Buffer::alloc_buffer(const std::size_t &size)
 
 void *Buffer::rev_memcpy(void *dest, const void *src, size_t length)
 {
-	char *d = static_cast<char *>(dest) + length - 1;
-	const char *s = static_cast<const char *>(src);
+	uint8_t *d = static_cast<uint8_t*>(dest) + length - 1;
+	const uint8_t *s = static_cast<const uint8_t*>(src);
 	while (length--)
 		*d-- = *s++;
 	return dest;
 }
 
-Buffer::Buffer(const TYPE &type, const std::size_t &size)
+Buffer::Buffer(const TYPE type, const std::size_t size)
 {
 	if (size < 1) throw std::length_error("buffer buffer_size must be greater than 1.");
 	this->buffer_data = std::malloc(size);
@@ -73,6 +73,18 @@ Buffer::Buffer(Buffer &&other) noexcept
 	other.next_pointer = 0;
 	other.buffer_mode = READ;
 	other.buffer_type = DYNAMIC;
+}
+
+Buffer::Buffer(std::istream& stream, const size_t count) : Buffer(STATIC, count)
+{
+	if (this->buffer_mode == READ)
+		throw std::logic_error("cannot write to buffer when in read mode.");
+
+	this->alloc_buffer(count);
+
+	stream.read(static_cast<char *>(this->buffer_data) + this->next_pointer, this->buffer_size);
+	this->next_pointer += count;
+	this->set_mode_read();
 }
 
 Buffer::~Buffer()
@@ -157,7 +169,7 @@ bool Buffer::operator!=(const Buffer &other) const
 	return !(*this == other);
 }
 
-Buffer &Buffer::operator+=(const std::size_t &jmp)
+Buffer &Buffer::operator+=(const std::size_t jmp)
 {
 	if (this->buffer_mode == WRITE) throw std::logic_error("cannot jump forward in buffer while in write mode.");
 	if (this->next_pointer + jmp > this->buffer_size)
@@ -179,7 +191,7 @@ Buffer &Buffer::operator++()
 	return *this;
 }
 
-Buffer &Buffer::operator-=(const std::size_t &jmp)
+Buffer &Buffer::operator-=(const std::size_t jmp)
 {
 	if (static_cast<int>(this->next_pointer) - static_cast<int>(jmp) < 0)
 		throw std::logic_error("trying to move to negative position in the buffer.");
@@ -197,22 +209,23 @@ Buffer &Buffer::operator--()
 	return *this;
 }
 
-void *Buffer::clone_serialized() const
+std::pair<uint8_t *, size_t> Buffer::clone_serialized() const
 {
 	void *res = std::malloc(this->next_pointer);
-	std::memcpy(res, this->buffer_data, this->next_pointer);
-	return res;
+	if (!res)
+		throw std::runtime_error("failed to create clone buffer");
+	
+	if (!std::memcpy(res, this->buffer_data, this->next_pointer))
+		throw std::runtime_error("failed to clone buffer data");
+	
+	return std::make_pair(static_cast<uint8_t *>(res), this->next_pointer);
 }
 
-std::vector<unsigned char> Buffer::as_vec() const
+std::vector<uint8_t> Buffer::as_vec() const
 {
-	std::vector<unsigned char> res;
-	const unsigned char *data = static_cast<const unsigned char *>(buffer_data);
+	const uint8_t *data = static_cast<const uint8_t *>(buffer_data);
 
-	for(size_t i = 0; i < this->next_pointer; ++i)
-		res.push_back(data[i]);
-
-	return res;
+	return std::vector<uint8_t>(data, data + this->next_pointer);
 }
 
 bool Buffer::operator==(const Buffer &other) const
@@ -220,8 +233,8 @@ bool Buffer::operator==(const Buffer &other) const
 	if (this->next_pointer != other.next_pointer)
 		return false;
 
-	const char *this_data = static_cast<const char *>(this->buffer_data);
-	const char *other_data = static_cast<const char *>(other.buffer_data);
+	const uint8_t *this_data = static_cast<const uint8_t*>(this->buffer_data);
+	const uint8_t *other_data = static_cast<const uint8_t*>(other.buffer_data);
 
 	for (size_t i = 0; i < this->next_pointer; ++i)
 	{
@@ -232,25 +245,25 @@ bool Buffer::operator==(const Buffer &other) const
 	return true;
 }
 
-void Buffer::write_generic(const void *data, const std::size_t &size, const bool &check_endian)
+void Buffer::write_generic(const void *data, const std::size_t size, const bool check_endian)
 {
 	if (!data) throw std::runtime_error("trying to write buffer_data that from null pointer.");
 	if (this->buffer_mode == READ)
 		throw std::logic_error("cannot write to buffer when in read mode.");
 
 	alloc_buffer(size);
-	char *dest = static_cast<char *>(this->buffer_data);
+	uint8_t *dest = static_cast<uint8_t*>(this->buffer_data);
 
 	if (is_big_endian || !check_endian)
-		dest = static_cast<char *>(std::memcpy(dest + this->next_pointer, data, size));
+		dest = static_cast<uint8_t*>(std::memcpy(dest + this->next_pointer, data, size));
 	else
-		dest = static_cast<char *>(rev_memcpy(dest + this->next_pointer, data, size));
+		dest = static_cast<uint8_t*>(rev_memcpy(dest + this->next_pointer, data, size));
 
 	if (!dest) throw std::runtime_error("failed to write buffer_data into buffer.");
 	this->next_pointer += size;
 }
 
-void Buffer::read_generic(void *dest, const std::size_t &size, const bool &check_endian)
+void Buffer::read_generic(void *dest, const std::size_t size, const bool check_endian)
 {
 	if (!dest) throw std::runtime_error("trying to read data into a null pointer.");
 	if (this->buffer_mode == WRITE)
@@ -259,7 +272,7 @@ void Buffer::read_generic(void *dest, const std::size_t &size, const bool &check
 	if (this->next_pointer + size > this->buffer_size)
 		throw std::length_error("reached end of buffer.");
 
-	const char *src = static_cast<char *>(this->buffer_data);
+	const uint8_t *src = static_cast<uint8_t *>(this->buffer_data);
 
 	if (is_big_endian || !check_endian)
 		dest = std::memcpy(dest, src + this->next_pointer, size);
@@ -288,7 +301,7 @@ std::istream &operator>>(std::istream &stream, Buffer &buffer)
 
 	buffer.alloc_buffer(stream_length);
 
-	stream.read(static_cast<char *>(buffer.buffer_data) + buffer.next_pointer, buffer.buffer_size);
+	stream.read(static_cast<char *>(buffer.buffer_data) + buffer.next_pointer, stream_length);
 	buffer.next_pointer += stream_length;
 
 	return stream;

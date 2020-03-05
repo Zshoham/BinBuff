@@ -17,7 +17,7 @@ The Buffer class is the core of the library, to serialize data you must write it
 
 The Buffer class is the core of the library, to serialize data you must write it into the Buffer and later to deserialize it you must use the buffer and read the data from it.
 
-The buffer can automaticllay serialize many standard types, but to make a custom type serializable you must inherit the ISerializable interface.
+The buffer can automatically serialize many standard types, but to make a custom type serializable you must inherit the ISerializable interface.
 
 The Buffer constructor accepts TYPE and size (default is 32), there are two buffer types:
 
@@ -37,10 +37,9 @@ buff = new BinBuffer(BinBuffer.Type.STATIC, 128); // this creates a buffer with 
 Now we have a buffer we can start writing to it, we can call the write method with many arguments, this will write each argument to the buffer in the order they were passed to the method from left to right.
 
 ```C#
-buff.Write((byte)5); // you can use the write method
-buff.Write((byte)25, (byte)'a'); // or the shift left operator
+buff.Write((byte)5); // you can use the Write method with a single argument
+buff.Write((byte)25, (byte)'a'); // or with many
 
-// for raw arrays the size must be specified thus << operator cannot be used.
 bool[] bools = { true, true, false, true };
 buff.Write(bools); 
 
@@ -49,12 +48,12 @@ buff.Write(bools);
 byte[] ser = buff.CloneSerialized();
 ```
 
-Until now the buffer was in WRITE mode, now that we finished writing to it we would do something with the serialized data and later return it to a buffer and then we would like to read it, to do that the buffer must be in READ mode, for this example lets just use the same buffer and convert it to read mode.
+Until now the buffer was in WRITE mode, now that we finished writing to it we would do something with the serialized data and later return it to a buffer from which we would like to read it, to do that the buffer must be in READ mode, for this example lets just use the same buffer and convert it to read mode.
 
 ```C#
 buff.SetRead();
 
-// here we read the first three numbers we wrote into an array.
+// here we read the first three numbers we wrote, into an array.
 byte[] first = new byte[3];
 buff.Read(first, 3);
 
@@ -68,7 +67,7 @@ buff.Read(out b); // meaning b is now false.
 
 All data structures implemented in the c# collections library are supported, the library tries to provide an interface for serializing data as generically as possible, for example, any class that is a child of IEnumerable can be serialized as a container.
 
-That being said it is also possible to create serializable types by deriving the Serializable class or otherwise implementing a serializer for existing classes.
+That being said it is also possible to create serializable types by deriving the ISerializable class or otherwise implementing a serializer for existing classes.
 The tests can provide examples of both behaviors, let's see how it works. (for more details take a look at the tests)
 
 ```C#
@@ -140,7 +139,7 @@ class Game : BinBuff.ISerializable
 ```
 
 We have two classes, Player, relatively simple with only primitive data in it, and Game which contains an instance of player, and an array of players.
-Both classes inherit Serializable and redefine serialize and deserialize methods.
+Both classes inherit ISerializable and redefine serialize and deserialize methods.
 
 Next, we need to implement the serialization and deserialization methods for both classes:
 
@@ -166,6 +165,8 @@ Game
     public void Serialize(BinBuffer binBuffer)
     {
         binBuffer.Write(width, height);
+        // notice how we tell the buffer to serialize player here,
+        // the buffer will use the serialize method defined for the player.
         binBuffer.Write(player);
         binBuffer.Write((short)enemies.Length);
         binBuffer.Write(enemies);
@@ -175,6 +176,7 @@ Game
     {
         binBuffer.Read(out width);
         binBuffer.Read(out height);
+        // the same is true of the reading of player.
         binBuffer.Read(out player);
         short numEnemies;
         binBuffer.Read(out numEnemies);
@@ -206,11 +208,11 @@ buff.SetRead();
 
 Player fPlayer;
 Player sPlayer;
-Game nGame;
 
 Player[] playerArr = new Player[2];
 List<Game> gameList = new List<Game>();
 
+// note that you cannot read into multiple variables at once.
 buff.Read(out fPlayer);
 buff.Read(out sPlayer);
 buff.Read(playerArr, 2);

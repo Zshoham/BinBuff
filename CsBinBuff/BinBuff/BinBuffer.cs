@@ -167,7 +167,7 @@ namespace BinBuff
         /// <returns> Byte array containing all the data written to the buffer as bytes.</returns>
         public byte[] CloneSerialized()
         {
-            byte[] res = new byte[this.nextPointer + 1];
+            byte[] res = new byte[this.nextPointer];
             Array.Copy(this.bufferData, res, res.Length);
             return res;
         }

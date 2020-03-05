@@ -14,7 +14,7 @@
 #include <functional>
 #include <stdexcept>
 
-#define DEFAULT_BUFFER_SIZE 32
+typedef unsigned char uint8_t;
 
 namespace binbuff
 {
@@ -35,7 +35,7 @@ private:
 	const int endianness_test = 1;
 	bool is_big_endian = (*((char *)&endianness_test)) != 1;
 
-	void alloc_buffer(const std::size_t &size);
+	void alloc_buffer(std::size_t size);
 
 	// void internal_write(const void *data, const size_t &length, const bool &is_atomic = true, const size_t &width = 1);
 	// void internal_read(void *dest, const size_t &length, const bool &is_atomic = true, const size_t & width = 1);
@@ -148,7 +148,7 @@ private:
 	}
 
 	template<class T>
-	void write(const T *data, const std::size_t &length, std::false_type); // T is not primitive, hence 'data' must be an array of serializable types.
+	void write(const T *data, std::size_t length, std::false_type); // T is not primitive, hence 'data' must be an array of serializable types.
 
 
 	template<class T>
@@ -167,7 +167,7 @@ private:
 	}
 
 	template<class T>
-	void read_container(T &dest, const size_t &length, std::true_type) // T is readable associative
+	void read_container(T &dest, const size_t length, std::true_type) // T is readable associative
 	{
 		static_assert(is_readable_container<T>::value, "trying to read into unreadable container.");
 		typedef typename remove_inner_const<typename T::value_type>::type value_type;
@@ -180,7 +180,7 @@ private:
 	}
 
 	template<class T>
-	void read_container(T &dest, const size_t &length, std::false_type) // T is readable sequential
+	void read_container(T &dest, const size_t length, std::false_type) // T is readable sequential
 	{
 		typedef typename remove_inner_const<typename T::value_type>::type value_type;
 		for (size_t i = 0; i < length; ++i)
@@ -194,7 +194,7 @@ private:
 	// again the array methods have very similar logic 
 
 	template<class T>
-	void read(T *dest, const std::size_t &length, std::true_type) // T is primitive, hence 'data' is a primitive array.
+	void read(T *dest, const std::size_t length, std::true_type) // T is primitive, hence 'data' is a primitive array.
 	{
 		static_assert(std::is_arithmetic<T>::value, "trying to read into primitive non serializable types.");
 		if (!dest) throw std::runtime_error("trying to read into nullptr");
@@ -210,7 +210,7 @@ private:
 	}
 
 	template<class T>
-	void read(T *dest, const std::size_t &length, std::false_type); // T is not primitive, hence 'data' must be an array of serializable types.
+	void read(T *dest, std::size_t length, std::false_type); // T is not primitive, hence 'data' must be an array of serializable types.
 
 public:
 
@@ -219,10 +219,13 @@ public:
 	 * \param type the type of the buffer that will be created {DYNAMIC, STATIC}
 	 * \param size the initial size of the buffer that will be created.
 	 */
-	explicit Buffer(const TYPE &type, const std::size_t &size = DEFAULT_BUFFER_SIZE);
+	explicit Buffer(TYPE type, std::size_t size = 32);
 
 	Buffer(const Buffer &other);
 	Buffer(Buffer &&other) noexcept;
+	Buffer(std::istream &stream, size_t count);
+	template<class Itr>
+	Buffer(Itr begin, Itr end, size_t length);
 	~Buffer();
 
 	Buffer &operator=(const Buffer &other);
@@ -232,19 +235,19 @@ public:
 	void set_mode_read();
 
 	//sets the buffer to write mode, and sets the type of the buffer.
-	void set_mode_write(TYPE type, size_t extra_size = DEFAULT_BUFFER_SIZE);
+	void set_mode_write(TYPE type, size_t extra_size = 32);
 
 	bool operator==(const Buffer &other) const;
 	bool operator!=(const Buffer &other) const;
 
 	//jump 'jmp' bytes forward in the buffer.
-	Buffer &operator+=(const std::size_t &jmp);
+	Buffer &operator+=(std::size_t jmp);
 
 	//jump one byte forward in the buffer.
 	Buffer &operator++();
 
 	//jump 'jmp' bytes backwards in the buffer.
-	Buffer &operator-=(const std::size_t &jmp);
+	Buffer &operator-=(std::size_t jmp);
 
 	//jump one byte backwards in the buffer.
 	Buffer &operator--();
@@ -263,14 +266,14 @@ public:
 	 *			note that the allocated size is most likely larger then the number of bytes written to the buffer
 	 *			as the buffer preallocate's memory.
 	 */
-	void *get_serialized() const { return this->buffer_data; }
+	std::pair<uint8_t*, size_t> get_serialized() const { return std::make_pair(static_cast<uint8_t*>(this->buffer_data), this->next_pointer); }
 
 	/**
 	 * \brief	Returns a pointer to memory holding the serialized data, similar to the above get method
 	 *			only this method clones the memory held by the buffer, and cuts it to fit the serialized data exactly
 	 *			making the pointer safer to use, but costing the additional memory and time for the cloning.
 	 */
-	void *clone_serialized() const;
+	std::pair<uint8_t*, size_t> clone_serialized() const;
 
 	/**
 	 * \brief	Returns vector containing the serialized data represented as unsigned chars (uint8/byte)
@@ -278,7 +281,7 @@ public:
 	 *			be put in the vector and it will be safe to change the vector, though again at the cost of
 	 *			the memory and time of cloning.
 	 */
-	std::vector<unsigned char> as_vec() const;
+	std::vector<uint8_t> as_vec() const;
 
 	//writes the buffer into the file-stream.
 	friend std::ostream &operator<<(std::ostream &stream, const Buffer &buffer);
@@ -305,7 +308,7 @@ public:
 	 *			data to fit with the rest of the library, this might lead to errors when transporting
 	 *			data between two systems that use different endian representation.
 	 */
-	void write_generic(const void *data, const std::size_t &size, const bool &check_endian = true);
+	void write_generic(const void *data, std::size_t size, bool check_endian = true);
 
 
 	/**
@@ -369,7 +372,7 @@ public:
 	 * \param length the length of the array.
 	 */
 	template<class T>
-	void write(const T *data, const std::size_t &length)
+	void write(const T *data, const std::size_t length)
 	{
 		if (!data) throw std::runtime_error("trying to write nullptr");
 		this->write(data, length, std::is_arithmetic<T>());
@@ -382,7 +385,7 @@ public:
 	 * \param length the length of the array.
 	 */
 	template<class T>
-	void write(T **data, const std::size_t &length);
+	void write(T **data, std::size_t length);
 
 	/**
 	 * \brief writes 'data' into the buffer.
@@ -454,7 +457,7 @@ public:
 	 *						data to fit with the rest of the library, this might lead to errors when transporting
 	 *						data between two systems that use different endian representation.
 	 */
-	void read_generic(void *dest, const std::size_t &size, const bool &check_endian = true);
+	void read_generic(void *dest, std::size_t size, bool check_endian = true);
 
 	/**
 	 * \brief reads data from the buffer into a container of deserializable data 'dest'
@@ -518,7 +521,7 @@ public:
 	 * \param length the length of the array that should be read.
 	 */
 	template<class T>
-	void read(T *dest, std::size_t length)
+	void read(T *dest, size_t length)
 	{
 		static_assert(is_serializable<T>::value, "trying to read into primirive non serializable types.");
 		this->read(dest, length, std::is_arithmetic<T>());
@@ -532,7 +535,7 @@ public:
 	 * \param length the length of the array that should be read.
 	 */
 	template<class T>
-	void read(T **dest, std::size_t length);
+	void read(T **dest, size_t length);
 
 
 	/**
@@ -567,11 +570,11 @@ public:
 	/**
 	 * \brief reads an array from the buffer into the given array 'dest'.
 	 * \tparam T a deserializable data type.
-	 * \tparam length length of the array.
+	 * \tparam Length length of the array.
 	 * \param dest the array to be read into.
 	 */
-	template<class T, size_t length>
-	void read(std::array<T, length> &dest);
+	template<class T, size_t Length>
+	void read(std::array<T, Length> &dest);
 
 
 	/**
@@ -610,7 +613,7 @@ public:
 #pragma region write implementation
 
 template <class T>
-void Buffer::write(const T *data, const std::size_t &length, std::false_type)
+void Buffer::write(const T *data, const std::size_t length, std::false_type)
 {
 	static_assert(std::is_base_of<Serializable, T>::value, "trying to write non primitive non serializable types.");
 	if (!data) throw std::runtime_error("trying to write nullptr");
@@ -621,7 +624,7 @@ void Buffer::write(const T *data, const std::size_t &length, std::false_type)
 }
 
 template <class T>
-void Buffer::write(T **data, const std::size_t &length)
+void Buffer::write(T **data, const std::size_t length)
 {
 	static_assert(is_serializable<T>::value, "trying to write non primitive non serializable type into buffer.");
 	if (!data) throw std::runtime_error("trying to write nullptr");
@@ -680,9 +683,21 @@ void Buffer::write(std::queue<T> &data)
 
 #pragma region read implementation
 
+template <class Itr>
+Buffer::Buffer(Itr begin, Itr end, const size_t length) : Buffer(STATIC, length)
+{
+	static_assert(is_valid_iterator<Itr>::value, "provided iterator is not valid");
+	
+	static_assert(std::is_same<decltype(*begin), uint8_t&>::value || 
+		std::is_same<decltype(*begin), const uint8_t&>::value
+		, "provided iterator must be over uint8_t's");
+	
+	write(begin, end);
+	this->set_mode_read();
+}
 
 template <class T>
-void Buffer::read(T *dest, const std::size_t &length, std::false_type)
+void Buffer::read(T *dest, const std::size_t length, std::false_type)
 {
 	static_assert(is_deserializable<T>::value, "trying to read into non deserializable type.");
 	if (!dest) throw std::runtime_error("trying to read buffer_data into null");
