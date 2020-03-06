@@ -10,32 +10,21 @@ All implementations support the same basic API described here.
 The library uses a `Buffer` to serialize and deserialize data, the buffer holds the data written into it and can be set to write or read mode.
 
 - once in read mode the buffer cannot be written into and only read operations may be performed.
-
 - in write mode, only write operations will be possible. When in write mode the buffer may also be either dynamic or static.
-
 - Dynamic Buffer - will adapt its size to the data being inserted into it.
-
 - Static Buffer - has a set size that cannot change and trying to write into it over its size limit will result in an error.
-
 - Creating a buffer:
-
-- - create a dynamic buffer in write mode.
+  - create a dynamic buffer in write mode.
   - create a static buffer in write mode.
   - create a buffer from byte array in write mode.
-
 - Write into the buffer :
-
-- - Write primitive data types into the buffer.
+  - Write primitive data types into the buffer.
   - Write array types into the buffer.
-
-- - Write generic data types into the buffer, this means that any type can be serialized using a custom serializer, though some types are supported 'out of the box'.
-
+  - Write generic data types into the buffer, this means that any type can be serialized using a custom serializer, though some types are supported 'out of the box'.
 - Read from buffer :
-
-- - Read primitive data types from a buffer.
+  - Read primitive data types from a buffer.
   - Read array types from a buffer, given array to read to and desired length.
   - Read generic data types from a buffer. Note that usually a type being deserializable is a stronger constraint than being serializable and so a type might be serializable but not deserializable.
-
 - Reading from a buffer will return the data that was read and will remove it from the buffer.
 
 ## Pseudocode Usage
@@ -77,10 +66,10 @@ buffer.read(new_person, person_deserializer)
 
 Documentation and examples for the different implementations of the library may be found in the respective folders or in these links:
 
-* [*C implementation*]()
+* [*C implementation*](CBinBuff)
 
-* [*C++ implementation*]()
+* [*C++ implementation*](CppBinBuff)
 
-* [*C# implementation*]()
+* [*C# implementation*](CsBinBuff)
 
-* [*Java implementation*]()
+* [*Java implementation*](JBinBuff)

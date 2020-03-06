@@ -7,12 +7,23 @@ The latest release of the library is available [here](https://github.com/Zshoham
 
 ## Working With Sources 
 
-To generate the build files for your System create a folder in the CppBinBuff directory called build
-then inside the build folder run `cmake ..` and all the appropriate build files will be generated in the build folder.
+To generate the build files for your System first run `git clone https://github.com/google/googletest.git` 
+in the CppBinBuff directory then create a folder where you'll put the build files.
+inside the folder run `cmake ..`, this will generate all the build files. 
+
+example set up : 
+```sh
+~BinBuff/CppbinBuff$ git clone https://github.com/google/googletest.git
+~BinBuff/CppbinBuff$ mkdir build
+~BinBuff/CppbinBuff$ cd build
+~BinBuff/CppbinBuff/build$ cmake ..
+~BinBuff/CppbinBuff/build$ cmake --build .
+~BinBuff/CppbinBuff/build$ test/./binbuff_test
+```
 
 * **on Windows** - if you are on windows a Visual Studio solution will be created with projects for the test and the library itself.
 * **on Linux** - if you are on a Linux system a Makefile will be generated, running `make` in the build directory will create a libbinbuff.a file and inside the test directory there will be a binbuff_test executable.
-* **other** - the project is c++ 11 compliant and very complicated - it only consists of 5 files - 4 .h files in the include folder and one source file in the src folder.
+* **other** - the project is c++ 11 compliant and not very complicated - it only consists of 5 files - 4 .h files in the include folder and one source file in the src folder.
 
 A `configure.py` script is provided to help configure the project correctly and later build and test it, it is recommended to use this file for the initial configuration at the very least as CMake can make some things a bit annoying to do by hand, also the CMake install command should be implemented in your desired build system, but it might not be possible to make the distinction between the install components (binbuff and googletest) by running the `configure.py` only the binbuff install will be performed to the bin folder.
 

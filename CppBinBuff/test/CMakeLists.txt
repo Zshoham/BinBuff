@@ -15,7 +15,7 @@ target_link_libraries(binbuff_test
 
 add_test(
     NAME binbuff_test
-    COMMAND binbuff_test
+    COMMAND ./binbuff_test
 )
 
 install(

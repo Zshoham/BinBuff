@@ -1,0 +1,30 @@
+dist: trusty
+
+language: csharp
+mono: none
+dotnet: 2.1.502
+
+jobs:
+  - before-script: cd CBinBuff
+    script:
+    - cmake .
+    - cmake --build . -- -j2
+    - ./binbuff_test
+  - before-script: cd CppBinBuff
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-7
+    script:
+    - git clone https://github.com/google/googletest.git
+    - CXX=/usr/bin/g++-7 CC=/usr/bin/gcc-7 cmake .
+    - cmake --build . --config Release -- -j2
+    - test/./binbuff_test
+  - before-script: cd JBinBuff
+    script:
+    - ./gradlew test
+  - before-script: cd CsBinBuff
+    script:
+    - dotnet test

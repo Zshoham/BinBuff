@@ -321,13 +321,27 @@ bool test_generic_array()
 
 int main(int argc, char* argv[])
 {
-	if (!test_primitive()) puts("failed primitive serialization test.");
-	else if (!test_primitive_array()) puts("failed primitive array serialization test.");
-	else if (!test_generic()) puts("failed generic serialization test.");
-	else if (!test_generic_array()) puts("failed generic array serialization test.");
-	else puts("all tests passed.");
+	if (!test_primitive()) 
+	{
+		puts("\033[91mfailed primitive serialization test. \033[0m");
+		return 1;
+	}
+	else if (!test_primitive_array())
+	{
+		puts("\033[91mfailed primitive array serialization test. \033[0m");
+		return 1;
+	}
+	else if (!test_generic()) 
+	{
+		puts("\033[91mfailed generic serialization test. \033[0m");
+		return 1;
+	}
+	else if (!test_generic_array())
+	{
+		puts("\033[91mfailed generic array serialization test. \033[0m");
+		return 1;
+	}
+	else puts("\033[92mall tests passed. \033[0m");
 	
-	char finish = getchar();
-
 	return 0;
 }
