@@ -1,4 +1,6 @@
-# BinBuff
+# BinBuff 
+
+[![Build Status](https://travis-ci.org/Zshoham/BinBuff.svg?branch=master)](https://travis-ci.org/Zshoham/BinBuff)
 
 Simple and minimalistic library that provides binary serialization in  [`C`](https://github.com/Zshoham/BinBuff/tree/master/CBinBuff
 )  , [`C++`](https://github.com/Zshoham/BinBuff/tree/master/CppBinBuff) [`C#`](https://github.com/Zshoham/BinBuff/tree/master/CsBinBuff) and [`Java`](https://github.com/Zshoham/BinBuff/tree/master/JBinBuff).
