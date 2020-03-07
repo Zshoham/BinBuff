@@ -69,9 +69,8 @@ buffer.read(new_person, person_deserializer)
 Documentation and examples for the different implementations of the library may be found in the respective folders or in these links:
 
 * [*C implementation*](CBinBuff)
-
 * [*C++ implementation*](CppBinBuff)
-
 * [*C# implementation*](CsBinBuff)
-
 * [*Java implementation*](JBinBuff)
+
+The `pack.py` script is provided to help build, test and consolidate all the binaries quickly and from one place, run `./pack.py -b` to rebuild all the implementations, this will create a `release` folder containing folders with binaries for each implementation and a log folder with logs of the build and packaging.

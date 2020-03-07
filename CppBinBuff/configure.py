@@ -110,9 +110,6 @@ if __name__ == '__main__':
         if build: 
             shutil.rmtree('build')
             build = False
-        if bin:
-            shutil.rmtree('bin')
-            bin = False
 
     if args.clean:
         if googletest: 
@@ -128,8 +125,6 @@ if __name__ == '__main__':
     
     if not build:
         run_cmake()
-        cmake_build('Debug')
-        cmake_test('Debug')
 
     if args.test:
         cmake_test(args.test)
