@@ -5,7 +5,7 @@
 Simple and minimalistic library that provides binary serialization in  [`C`](https://github.com/Zshoham/BinBuff/tree/master/CBinBuff
 )  , [`C++`](https://github.com/Zshoham/BinBuff/tree/master/CppBinBuff) [`C#`](https://github.com/Zshoham/BinBuff/tree/master/CsBinBuff) and [`Java`](https://github.com/Zshoham/BinBuff/tree/master/JBinBuff).
 
-All implementations support the same basic API described here.
+All implementations support the same basic API described here, more information and documentation is provided for each implementation in its respective README file.
 
 ## Abstract API
 
@@ -66,11 +66,6 @@ buffer.read(new_person, person_deserializer)
 //now new_person has the same state that person had before the serialization.
 ```
 
-Documentation and examples for the different implementations of the library may be found in the respective folders or in these links:
+## Building The library
 
-* [*C implementation*](CBinBuff)
-* [*C++ implementation*](CppBinBuff)
-* [*C# implementation*](CsBinBuff)
-* [*Java implementation*](JBinBuff)
-
-The `pack.py` script is provided to help build, test and consolidate all the binaries quickly and from one place, run `./pack.py -b` to rebuild all the implementations, this will create a `release` folder containing folders with binaries for each implementation and a log folder with logs of the build and packaging.
+Information on how to build each implementation is provided in the respective README files, but for quick building the `pack.py` script is provided to help build, test and consolidate all the binaries quickly and from one place, run `./pack.py -b` to rebuild all the implementations, this will create a `release` folder containing folders with binaries for each implementation and a log folder with logs of the build and packaging.

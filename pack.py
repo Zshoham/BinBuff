@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import argparse
 from multiprocessing import Process, Lock
@@ -191,7 +191,10 @@ def cpp_test(print_lock, log):
 
     os.chdir('CppBinBuff')
 
-    buildProcess = subprocess.run(['python', './configure.py', '-t', 'Release'], stdout=log, stderr=log)
+    if is_windows:
+        buildProcess = subprocess.run(['python', './configure.py', '-t', 'Release'], stdout=log, stderr=log)
+    else:
+        buildProcess = subprocess.run(['./configure.py', '-t', 'Release'], stdout=log, stderr=log)
     
     if not buildProcess.returncode == 0:
         show("Cpp tests are failing", "ERROR", print_lock)
@@ -329,7 +332,10 @@ def clean():
         os.chdir(project_dir)
 
     os.chdir('CppBinBuff')
-    subprocess.run(['python', 'configure.py', '-c'], stdout=subprocess.DEVNULL)
+    if is_windows:
+        buildProcess = subprocess.run(['python', './configure.py', '-c'])
+    else:
+        buildProcess = subprocess.run(['./configure.py', '-c'])
     os.chdir(project_dir)
 
     os.chdir('CsBinBuff/BinBuff')
