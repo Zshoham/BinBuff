@@ -5,12 +5,12 @@ mono: none
 dotnet: 2.1.502
 
 jobs:
-  - before-script: cd CBinBuff
+  - before_script: cd CBinBuff
     script:
     - cmake .
     - cmake --build . -- -j2
     - ./binbuff_test
-  - before-script: cd CppBinBuff
+  - before_script: cd CppBinBuff
     addons:
       apt:
         sources:
@@ -22,11 +22,11 @@ jobs:
     - CXX=/usr/bin/g++-7 CC=/usr/bin/gcc-7 cmake .
     - cmake --build . --config Release -- -j2
     - test/./binbuff_test
-  - before-script: cd JBinBuff
+  - before_script: cd JBinBuff
     script:
     - ./gradlew test
     - ./gradlew jacocoTestReport  
   - after_success: bash <(curl -s https://codecov.io/bash)
-  - before-script: cd CsBinBuff
+  - before_script: cd CsBinBuff
     script:
     - dotnet test
