@@ -23,10 +23,10 @@ jobs:
     - cmake --build . --config Release -- -j2
     - test/./binbuff_test
   - before_script: cd JBinBuff
+  - after_success: bash <(curl -s https://codecov.io/bash)
     script:
     - ./gradlew test
     - ./gradlew jacocoTestReport  
-  - after_success: bash <(curl -s https://codecov.io/bash)
   - before_script: cd CsBinBuff
     script:
     - dotnet test
