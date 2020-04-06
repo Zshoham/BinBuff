@@ -25,6 +25,8 @@ jobs:
   - before-script: cd JBinBuff
     script:
     - ./gradlew test
+    - ./gradlew jacocoTestReport  
+  - after_success: bash <(curl -s https://codecov.io/bash)
   - before-script: cd CsBinBuff
     script:
     - dotnet test
