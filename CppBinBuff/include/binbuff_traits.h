@@ -4,7 +4,6 @@
 #include <type_traits>
 #include <memory>
 #include "serializable.h"
-#include "buffer.h"
 
 namespace binbuff
 {
