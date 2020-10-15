@@ -2,7 +2,7 @@
 
 Player::Player(int player_num) : player_num(player_num)
 {
-	this->health = 100 * player_num;
+	this->health = player_num * 100;
 	this->isAlive = true;
 	this->strength = 10 * player_num;
 }

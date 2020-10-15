@@ -348,7 +348,7 @@ def clean():
         os.chdir(project_dir)
 
 if __name__ == '__main__':
-
+    os.system('')
     args = parser.parse_args()
 
     if os.path.isdir('release'):

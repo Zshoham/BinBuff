@@ -161,7 +161,7 @@ private:
 	template<class T>
 	void read(T &dest, std::false_type) // T is not primitive, hence it must be deserializable.
 	{
-		static_assert(std::is_base_of<Serializable, T>::value, "trying to read into primitive non serializable types.");
+		static_assert(std::is_destructible<T>:: value, "trying to read into primitive non serializable types.");
 		static_assert(!is_readable_container<T>::value, "trying to read into container without specifying number of elements.");
 		dest.deserialize(*this);
 	}
@@ -615,7 +615,7 @@ public:
 template <class T>
 void Buffer::write(const T *data, const std::size_t length, std::false_type)
 {
-	static_assert(std::is_base_of<Serializable, T>::value, "trying to write non primitive non serializable types.");
+	static_assert(is_serializable<T>::value, "trying to write non primitive non serializable types.");
 	if (!data) throw std::runtime_error("trying to write nullptr");
 	for (size_t i = 0; i < length; ++i)
 	{

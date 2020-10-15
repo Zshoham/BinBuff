@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <memory>
 #include "serializable.h"
+#include "buffer.h"
 
 namespace binbuff
 {
@@ -90,10 +91,33 @@ namespace impl
 	{
         typedef typename std::remove_const<typename std::remove_reference<T>::type>::type test_type;
 
+		template<typename S>
+		struct is_serializable_concept
+		{			
+			template<typename Ser>
+			static constexpr bool test(
+				Ser* pt,
+				Buffer* bpt = nullptr,
+				decltype(pt->serialize(*bpt))* = nullptr,
+				decltype(pt->deserialize(*bpt))* = nullptr)
+			{
+				return true;
+
+			}
+
+			template<typename Ser>
+			static constexpr bool test(...)
+			{
+				return false;
+			}
+
+			static const bool value = test<S>(nullptr);
+		};
+
 		template<class S>
 		struct is_primitive_serializable
 		{
-			static const bool value = std::is_base_of<Serializable, S>::value || std::is_arithmetic<S>::value;
+			static const bool value = is_serializable_concept<S>::value || std::is_base_of<Serializable, S>::value || std::is_arithmetic<S>::value;
 		};
 
 		template<class S>
@@ -321,7 +345,9 @@ struct default_construct
  *                                                                                                                     
  * let type T be called primitive serializable if one of the following applies:
  * *    T is a primitive type or more specifically T satisfies is_arithmetic<T>
- * *    T is a descendant of the Serializable class, more specifically T needs to satisfy is_base_of<Serializable, T>.
+ * *	T implements the serialize and deserialize methods as specified by the Serializable class.
+ *		note that T might be a descendent of Serializable or just implement the methods correctly,
+ *		(See the difference between Player and Game in the tests).
  *                                                                                                                     
  * let type T be serializable if it is primitive serializable or one of the following:
  * *    a pointer to a primitive serializable type.

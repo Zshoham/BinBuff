@@ -3,7 +3,7 @@
 #include "binbuff.h"
 
 
-class Player : public bbf::Serializable
+class Player
 {
 	bool isAlive;
     double health;
@@ -22,7 +22,7 @@ public:
 	bool operator<(const Player& other) const { return this->player_num < other.player_num; }
 
 
-	void serialize(bbf::Buffer& buffer) const override { buffer << this->player_num << this->isAlive << this->health << this->strength; }
-	void deserialize(bbf::Buffer& buffer) override { buffer >> this->player_num >> this->isAlive >> this->health >> this->strength; }
+	void serialize(bbf::Buffer& buffer) const { buffer << this->player_num << this->isAlive << this->health << this->strength; }
+	void deserialize(bbf::Buffer& buffer) { buffer >> this->player_num >> this->isAlive >> this->health >> this->strength; }
 };
 
